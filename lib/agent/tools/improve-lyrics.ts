@@ -20,16 +20,22 @@ export class ImproveLyricsTool extends Tool {
   
   outputSchema = SongStructureSchema;
 
-  private openai: OpenAI;
+  private openai?: OpenAI;
+
+  private useMock: boolean;
 
   constructor() {
     super();
-    // Initialize OpenAI client - LLM calls happen ONLY here
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required');
+    this.useMock = process.env.USE_MOCK_LLM === 'true';
+    
+    // Only initialize OpenAI if not using mock mode
+    if (!this.useMock) {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new Error('OPENAI_API_KEY environment variable is required (or set USE_MOCK_LLM=true for testing)');
+      }
+      this.openai = new OpenAI({ apiKey });
     }
-    this.openai = new OpenAI({ apiKey });
   }
 
   protected async executeInternal(input: unknown): Promise<SongStructure> {
@@ -38,9 +44,14 @@ export class ImproveLyricsTool extends Tool {
       evaluation: LyricsEvaluation;
     };
 
+    // MOCK MODE: Generate improved song structure without API call
+    if (this.useMock) {
+      return this.generateMockImprovedSong(songStructure, evaluation);
+    }
+
     // LLM CALL: Improve lyrics based on evaluation
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
+    const completion = await this.openai!.chat.completions.create({
+      model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -101,5 +112,36 @@ Provide the improved song structure as JSON matching this exact format:
     
     // Return will be validated by outputSchema in execute()
     return parsed as SongStructure;
+  }
+
+  private generateMockImprovedSong(songStructure: SongStructure, evaluation: LyricsEvaluation): SongStructure {
+    // Generate improved version by enhancing existing sections
+    const improvedSections = songStructure.sections.map((section, idx) => {
+      let improvedContent = section.content;
+      
+      // Apply improvements based on suggestions
+      if (evaluation.suggestions.some(s => s.toLowerCase().includes('imagery'))) {
+        improvedContent = improvedContent + '\n[Enhanced with more vivid imagery]';
+      }
+      if (evaluation.suggestions.some(s => s.toLowerCase().includes('emotional'))) {
+        improvedContent = `With deeper feeling,\n${improvedContent}`;
+      }
+      if (section.type === 'chorus' && evaluation.suggestions.some(s => s.toLowerCase().includes('memorable'))) {
+        improvedContent = `${improvedContent}\n[More catchy and memorable]`;
+      }
+      
+      return {
+        ...section,
+        content: improvedContent || section.content,
+      };
+    });
+
+    return {
+      title: songStructure.title.startsWith('Improved') 
+        ? songStructure.title 
+        : `Improved ${songStructure.title}`,
+      sections: improvedSections,
+      totalSections: improvedSections.length,
+    };
   }
 }

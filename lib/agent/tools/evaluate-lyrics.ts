@@ -19,24 +19,35 @@ export class EvaluateLyricsTool extends Tool {
   
   outputSchema = LyricsEvaluationSchema;
 
-  private openai: OpenAI;
+  private openai?: OpenAI;
+
+  private useMock: boolean;
 
   constructor() {
     super();
-    // Initialize OpenAI client - LLM calls happen ONLY here
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required');
+    this.useMock = process.env.USE_MOCK_LLM === 'true';
+    
+    // Only initialize OpenAI if not using mock mode
+    if (!this.useMock) {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new Error('OPENAI_API_KEY environment variable is required (or set USE_MOCK_LLM=true for testing)');
+      }
+      this.openai = new OpenAI({ apiKey });
     }
-    this.openai = new OpenAI({ apiKey });
   }
 
   protected async executeInternal(input: unknown): Promise<LyricsEvaluation> {
     const { songStructure } = input as { songStructure: SongStructure };
 
+    // MOCK MODE: Generate sample evaluation without API call
+    if (this.useMock) {
+      return this.generateMockEvaluation(songStructure);
+    }
+
     // LLM CALL: Evaluate lyrics quality
-    const completion = await this.openai.chat.completions.create({
-      model: 'gpt-4',
+    const completion = await this.openai!.chat.completions.create({
+      model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system',
@@ -87,5 +98,39 @@ Provide your evaluation as JSON matching this exact format:
     
     // Return will be validated by outputSchema in execute()
     return parsed as LyricsEvaluation;
+  }
+
+  private generateMockEvaluation(songStructure: SongStructure): LyricsEvaluation {
+    // Generate mock evaluation based on song structure
+    const sectionCount = songStructure.sections.length;
+    const avgSectionLength = songStructure.sections.reduce((sum, s) => sum + s.content.length, 0) / sectionCount;
+    
+    // Rule-based quality scoring (simulating LLM evaluation)
+    let quality = 6; // Base score
+    if (sectionCount >= 5) quality += 1;
+    if (avgSectionLength > 100) quality += 1;
+    if (songStructure.sections.some(s => s.type === 'chorus')) quality += 0.5;
+    
+    const needsImprovement = quality < 7;
+    
+    return {
+      quality: Math.min(10, Math.max(0, quality)),
+      strengths: [
+        'Good song structure with multiple sections',
+        'Clear thematic development',
+        sectionCount >= 5 ? 'Comprehensive section variety' : 'Adequate section structure',
+      ],
+      weaknesses: needsImprovement ? [
+        'Could benefit from more descriptive imagery',
+        'Rhyme scheme could be more consistent',
+        avgSectionLength < 80 ? 'Some sections feel brief' : undefined,
+      ].filter(Boolean) as string[] : [],
+      suggestions: needsImprovement ? [
+        'Add more vivid imagery and metaphors',
+        'Strengthen the emotional impact in verses',
+        'Enhance the chorus to make it more memorable',
+      ] : [],
+      needsImprovement,
+    };
   }
 }
