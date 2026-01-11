@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Song {
+  id            String   @id @default(cuid())
+  title         String?
+  
+  // Input data
+  inputLyrics   String
+  inputEmotion  String
+  inputGenre    String?
+  
+  // Generated data (stored as JSON strings)
+  creativeBrief String?  // JSON string of CreativeBrief
+  songStructure String   // JSON string of SongStructure
+  evaluation    String?  // JSON string of LyricsEvaluation
+  trace         String?  // JSON string of trace array
+  
+  // Metadata
+  iterationCount Int     @default(0)
+  qualityScore   Float?
+  
+  // Timestamps
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  @@index([createdAt])
+  @@index([qualityScore])
+}

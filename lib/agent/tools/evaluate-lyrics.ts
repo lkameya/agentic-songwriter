@@ -15,6 +15,7 @@ export class EvaluateLyricsTool extends Tool {
   
   inputSchema = z.object({
     songStructure: SongStructureSchema,
+    language: z.enum(['en', 'pt-BR']).optional(),
   });
   
   outputSchema = LyricsEvaluationSchema;
@@ -38,7 +39,11 @@ export class EvaluateLyricsTool extends Tool {
   }
 
   protected async executeInternal(input: unknown): Promise<LyricsEvaluation> {
-    const { songStructure } = input as { songStructure: SongStructure };
+    const { songStructure, language } = input as { 
+      songStructure: SongStructure;
+      language?: 'en' | 'pt-BR';
+    };
+    const outputLanguage = language || 'en';
 
     // MOCK MODE: Generate sample evaluation without API call
     if (this.useMock) {
@@ -47,20 +52,33 @@ export class EvaluateLyricsTool extends Tool {
 
     // LLM CALL: Evaluate lyrics quality
     const completion = await this.openai!.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: this.getModel(),
       messages: [
         {
           role: 'system',
-          content: `You are an expert music critic and songwriter. Evaluate song lyrics for:
-- Emotional resonance and impact
-- Coherence and narrative flow
-- Rhyme and rhythm quality
-- Originality and creativity
-- Alignment with intended emotion/genre
-- Overall quality and polish
+          content: `You are a strict, expert music critic and award-winning songwriter. Evaluate song lyrics with high standards for creativity and originality.
+
+EVALUATION CRITERIA (be strict):
+- **Creativity & Originality (CRITICAL)**: Are the lyrics fresh and unique? Do they avoid clichés and generic phrases? Score LOW if lyrics contain overused expressions or predictable metaphors.
+- **Emotional Resonance**: Do the lyrics create genuine emotional impact through specific, vivid details rather than abstract statements?
+- **Imagery & Sensory Details**: Are there vivid, concrete images that engage the senses? Generic descriptions score LOW.
+- **Coherence & Narrative Flow**: Does the song tell a coherent story or build a clear emotional arc?
+- **Rhyme & Rhythm Quality**: Are rhymes natural and rhythm smooth?
+- **Memorability**: Would listeners remember specific lines? Generic lyrics score LOW.
+- **Alignment**: Does it match the intended emotion/genre?
+- **Overall Polish**: Professional quality and refinement
+
+SCORING GUIDELINES:
+- 9-10: Exceptional creativity, unique voice, memorable lines, vivid imagery, no clichés
+- 8-8.9: Strong creativity, mostly original, good imagery, minimal clichés
+- 7-7.9: Decent creativity but some generic phrases or predictable elements
+- Below 7: Too many clichés, generic phrases, lacks originality, needs significant improvement
+
+Set needsImprovement to TRUE if quality < 8.5 OR if lyrics contain multiple clichés/generic phrases.
 
 Provide a quality score (0-10), list strengths, weaknesses, specific suggestions, and whether improvement is needed.
-Be constructive and specific in your feedback.`
+Be constructive, specific, and STRICT about creativity and originality.
+${outputLanguage === 'pt-BR' ? 'IMPORTANT: Provide all evaluation feedback (strengths, weaknesses, suggestions) in Portuguese (Brazil).' : 'Provide all evaluation feedback in English.'}`
         },
         {
           role: 'user',
@@ -80,7 +98,7 @@ Provide your evaluation as JSON matching this exact format:
   "strengths": [<array of strings describing what works well>],
   "weaknesses": [<array of strings describing areas needing improvement>],
   "suggestions": [<array of specific improvement suggestions>],
-  "needsImprovement": <boolean - true if quality < 7 or significant issues found>
+  "needsImprovement": <boolean - true if quality < 8.5 OR if lyrics contain clichés/generic phrases OR significant creativity issues>
 }`
         }
       ],

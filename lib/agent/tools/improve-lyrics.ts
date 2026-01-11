@@ -17,6 +17,7 @@ export class ImproveLyricsTool extends Tool {
     songStructure: SongStructureSchema,
     evaluation: LyricsEvaluationSchema,
     userFeedback: z.string().optional(),
+    language: z.enum(['en', 'pt-BR']).optional(),
   });
   
   outputSchema = SongStructureSchema;
@@ -39,12 +40,19 @@ export class ImproveLyricsTool extends Tool {
     }
   }
 
+  private getModel(): string {
+    // Allow model override via environment variable, default to gpt-4-turbo-preview
+    return process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
+  }
+
   protected async executeInternal(input: unknown): Promise<SongStructure> {
-    const { songStructure, evaluation, userFeedback } = input as {
+    const { songStructure, evaluation, userFeedback, language } = input as {
       songStructure: SongStructure;
       evaluation: LyricsEvaluation;
       userFeedback?: string;
+      language?: 'en' | 'pt-BR';
     };
+    const outputLanguage = language || 'en';
 
     // MOCK MODE: Generate improved song structure without API call
     if (this.useMock) {
@@ -53,19 +61,33 @@ export class ImproveLyricsTool extends Tool {
 
     // LLM CALL: Improve lyrics based on evaluation
     const completion = await this.openai!.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: this.getModel(),
       messages: [
         {
           role: 'system',
-          content: `You are a professional songwriter. Improve lyrics based on feedback while:
-- Maintaining the original emotional tone and genre
-- Addressing specific weaknesses identified in the evaluation
-- Incorporating suggested improvements
-- Preserving the song structure (sections, order)
-- Keeping the same title or improving it if suggested
-- Ensuring each section has substantial, meaningful content
+          content: `You are an award-winning songwriter specializing in creative, original lyrics. Dramatically improve the lyrics based on feedback.
 
-Return the improved song structure as JSON.`
+CRITICAL IMPROVEMENT REQUIREMENTS:
+- **ELIMINATE ALL CLICHÉS AND GENERIC PHRASES**: Replace any overused expressions with fresh, original language
+- **ADD VIVID IMAGERY**: Use specific, concrete details that engage the senses (sights, sounds, textures, smells)
+- **CREATE UNIQUE METAPHORS**: Use unexpected comparisons and creative metaphors
+- **BUILD EMOTIONAL DEPTH**: Show emotions through specific scenes and moments, not abstract statements
+- **MAKE IT MEMORABLE**: Every line should contribute something fresh and original
+- **STRENGTHEN THE CHORUS**: Make it powerful, memorable, and emotionally resonant
+- **ENHANCE VERSES**: Tell stories or paint vivid scenes with concrete details
+
+IMPROVEMENT GUIDELINES:
+- Maintain the original emotional tone and genre
+- Address ALL weaknesses identified in the evaluation
+- Incorporate ALL suggested improvements
+- Preserve the song structure (sections, order)
+- Improve the title if it's generic or unmemorable
+- Ensure each section has substantial content (6-8 lines preferred)
+- Target quality 8.5+ for creativity and originality
+
+${outputLanguage === 'pt-BR' ? 'IMPORTANT: Write all improved lyrics, title, and content in Portuguese (Brazil). Use Brazilian Portuguese spelling and expressions. Avoid generic phrases.' : 'Write all improved lyrics, title, and content in English.'}
+
+Return the dramatically improved song structure as JSON.`
         },
         {
           role: 'user',
@@ -102,7 +124,7 @@ Provide the improved song structure as JSON matching this exact format:
         }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.8, // Higher temperature for creativity while incorporating feedback
+      temperature: 0.95, // Maximum temperature for creative improvements while incorporating feedback
     });
 
     const content = completion.choices[0]?.message?.content;

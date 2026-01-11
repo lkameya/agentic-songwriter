@@ -35,5 +35,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# prisma
+/prisma/dev.db
+/prisma/dev.db-journal
+
 # cursor
 .cursor/

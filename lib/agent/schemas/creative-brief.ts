@@ -10,6 +10,7 @@ export const CreativeBriefSchema = z.object({
   themes: z.array(z.string()), // Derived deterministically from emotion (e.g., "sad" → ["loss", "nostalgia"])
   tempo: z.enum(['slow', 'moderate', 'fast']).optional(), // Derived from emotion/genre rules
   style: z.string().optional(), // Derived from genre if provided
+  language: z.enum(['en', 'pt-BR']).default('en'), // Output language for generated content
 });
 
 export type CreativeBrief = z.infer<typeof CreativeBriefSchema>;

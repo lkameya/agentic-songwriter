@@ -12,12 +12,14 @@ import { SongStructure } from '@/lib/agent/schemas/song-structure';
 import { LyricsEvaluation } from '@/lib/agent/schemas/evaluation';
 import { approvalStore } from '@/lib/agent/core/approval-store';
 import { AgentStep } from '@/types/agent';
+import { prisma } from '@/lib/db/prisma';
 
 // Input validation schema
 const RunRequestSchema = z.object({
   lyrics: z.string().min(1, 'Lyrics are required'),
   emotion: z.string().min(1, 'Emotion is required'),
   genre: z.string().optional(),
+  language: z.enum(['en', 'pt-BR']).optional().default('en'),
   enableHumanInLoop: z.boolean().optional(),
 });
 
@@ -146,6 +148,40 @@ export async function POST(req: NextRequest) {
           iterationCount,
           trace: result.trace,
         });
+
+        // Save song to database (async, don't block the stream)
+        if (songStructure) {
+          try {
+            const qualityScore = evaluation?.quality || null;
+            const savedSong = await prisma.song.create({
+              data: {
+                title: songStructure.title,
+                inputLyrics: validatedInput.lyrics,
+                inputEmotion: validatedInput.emotion,
+                inputGenre: validatedInput.genre || null,
+                creativeBrief: creativeBrief ? JSON.stringify(creativeBrief) : null,
+                songStructure: JSON.stringify(songStructure),
+                evaluation: evaluation ? JSON.stringify(evaluation) : null,
+                trace: result.trace ? JSON.stringify(result.trace) : null,
+                iterationCount,
+                qualityScore,
+              },
+            });
+
+            // Send saved song ID to client
+            sendEvent({
+              type: 'saved',
+              songId: savedSong.id,
+            });
+          } catch (saveError) {
+            // Log error but don't fail the request
+            console.error('Error saving song to database:', saveError);
+            sendEvent({
+              type: 'save_error',
+              error: saveError instanceof Error ? saveError.message : 'Failed to save song',
+            });
+          }
+        }
 
         controller.close();
       } catch (error) {

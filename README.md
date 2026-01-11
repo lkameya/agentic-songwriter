@@ -8,6 +8,21 @@ A learning-first agentic AI project that demonstrates orchestrator patterns, too
 
 *Note: To add a demo GIF, you can use tools like [Kap](https://getkap.co/) (Mac), [Peek](https://github.com/phw/peek) (Linux), or [ScreenToGif](https://www.screentogif.com/) (Windows) to record your screen, then save it as a GIF.*
 
+## 🚀 Deployment
+
+**Ready to deploy?** See [DEPLOYMENT.md](./DEPLOYMENT.md) for a complete guide to deploying to Vercel (free tier available).
+
+Quick start:
+1. Push code to GitHub
+2. Import to Vercel
+3. Set environment variables (OpenAI API key, PostgreSQL database)
+4. Deploy!
+
+Free hosting options:
+- ✅ **Vercel** - Free Next.js hosting (recommended)
+- ✅ **Neon** - Free PostgreSQL database
+- ✅ **Supabase** - Free PostgreSQL alternative
+
 ## ⚠️ Important: OpenAI API Key Required
 
 **To run this project locally, you need an OpenAI API key with credits.**
@@ -95,6 +110,9 @@ BriefAgent.execute() [Rule-based: decides which tools to call]
    **Option A: Use Real LLM (requires OpenAI credits)**
    ```env
    OPENAI_API_KEY=sk-your-openai-api-key-here
+   # Optional: Specify model (default: gpt-4-turbo-preview)
+   # Options: gpt-4-turbo-preview, gpt-4o, gpt-4o-mini, gpt-3.5-turbo
+   OPENAI_MODEL=gpt-4-turbo-preview
    ```
 
    **Option B: Use Mock Mode (for testing, no API key needed)**

@@ -31,6 +31,7 @@ export class BriefAgent extends Agent {
     lyrics: string;
     emotion: string;
     genre?: string;
+    language?: 'en' | 'pt-BR';
   }): CreativeBrief {
     // Rule-based mapping from emotion to mood
     const emotionToMood: Record<string, string> = {
@@ -109,6 +110,7 @@ export class BriefAgent extends Agent {
       themes,
       tempo,
       style: inputs.genre || undefined,
+      language: inputs.language || 'en',
     };
   }
 
@@ -117,7 +119,7 @@ export class BriefAgent extends Agent {
    * Rule-based decision tree with iteration support.
    */
   async execute(state: StateStore, trace: Trace): Promise<AgentStep> {
-    const initialInput = state.get('initialInput') as { lyrics: string; emotion: string; genre?: string } | undefined;
+    const initialInput = state.get('initialInput') as { lyrics: string; emotion: string; genre?: string; language?: 'en' | 'pt-BR' } | undefined;
     const songStructure = state.get('songStructure') as SongStructure | undefined;
     const evaluation = state.get('evaluation') as LyricsEvaluation | undefined;
     const iterationCount = (state.get('iterationCount') as number) || 0;
@@ -128,11 +130,18 @@ export class BriefAgent extends Agent {
     if (!songStructure && initialInput) {
       const brief = this.createCreativeBriefDeterministically(initialInput);
       
+      // Add language to brief if provided
+      const briefWithLanguage = {
+        ...brief,
+        language: initialInput.language || 'en',
+      };
+      
       // Validate brief
-      const validatedBrief = CreativeBriefSchema.parse(brief);
+      const validatedBrief = CreativeBriefSchema.parse(briefWithLanguage);
       
       // Store in state
       state.set('creativeBrief', validatedBrief);
+      state.set('language', initialInput.language || 'en');
       
       const generateTool = this.findTool('generate-song-structure');
       if (!generateTool) {
@@ -161,6 +170,8 @@ export class BriefAgent extends Agent {
         throw new Error('EvaluateLyrics tool not found');
       }
 
+      const language = state.get('language') as 'en' | 'pt-BR' | undefined || 'en';
+
       return {
         agentId: this.id,
         plan: {
@@ -170,7 +181,7 @@ export class BriefAgent extends Agent {
         actions: [{
           type: 'tool_call' as const,
           toolId: 'evaluate-lyrics',
-          input: { songStructure }
+          input: { songStructure, language }
         }],
         observations: [],
       };
@@ -190,6 +201,7 @@ export class BriefAgent extends Agent {
 
         // Check if there's user feedback from human-in-the-loop
         const userFeedback = state.get('userFeedback') as string | undefined;
+        const language = state.get('language') as 'en' | 'pt-BR' | undefined || 'en';
         
         return {
           agentId: this.id,
@@ -203,6 +215,7 @@ export class BriefAgent extends Agent {
             input: { 
               songStructure, 
               evaluation,
+              language,
               ...(userFeedback && { userFeedback })
             }
           }],

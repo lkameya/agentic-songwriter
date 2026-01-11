@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreativeBrief } from '@/lib/agent/schemas/creative-brief';
 import { SongStructure } from '@/lib/agent/schemas/song-structure';
 import { LyricsEvaluation } from '@/lib/agent/schemas/evaluation';
@@ -28,10 +28,27 @@ interface ApprovalRequest {
   output: SongStructure; // The generated content
 }
 
+interface SavedSong {
+  id: string;
+  title: string | null;
+  inputLyrics: string;
+  inputEmotion: string;
+  inputGenre: string | null;
+  creativeBrief: CreativeBrief | null;
+  songStructure: SongStructure;
+  evaluation: LyricsEvaluation | null;
+  trace: unknown[] | null;
+  iterationCount: number;
+  qualityScore: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function Home() {
   const [lyrics, setLyrics] = useState('');
   const [emotion, setEmotion] = useState('');
   const [genre, setGenre] = useState('');
+  const [language, setLanguage] = useState<'en' | 'pt-BR'>('en');
   const [enableHumanInLoop, setEnableHumanInLoop] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +59,10 @@ export default function Home() {
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
   const [feedback, setFeedback] = useState('');
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
+  const [songHistory, setSongHistory] = useState<SavedSong[]>([]);
+  const [selectedSong, setSelectedSong] = useState<SavedSong | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,12 +78,13 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          lyrics,
-          emotion,
-          genre: genre || undefined,
-          enableHumanInLoop,
-        }),
+          body: JSON.stringify({
+            lyrics,
+            emotion,
+            genre: genre || undefined,
+            language,
+            enableHumanInLoop,
+          }),
       });
 
       if (!response.ok) {
@@ -136,6 +158,9 @@ export default function Home() {
                 setProgress({ phase: 'complete', message: 'Complete!' });
                 setLoading(false);
                 return;
+              } else if (data.type === 'saved') {
+                // Song was saved to database, refresh history
+                fetchSongHistory();
               } else if (data.type === 'error') {
                 throw new Error(data.error || 'Unknown error');
               }
@@ -209,6 +234,125 @@ export default function Home() {
     }
   };
 
+  // Fetch song history from API
+  const fetchSongHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const response = await fetch('/api/songs?limit=50&sortBy=createdAt&order=desc');
+      const data = await response.json();
+      if (data.success) {
+        setSongHistory(data.songs);
+      }
+    } catch (err) {
+      console.error('Error fetching song history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // Load history on mount
+  useEffect(() => {
+    fetchSongHistory();
+  }, []);
+
+  // View a song from history
+  const handleViewSong = async (songId: string) => {
+    try {
+      const response = await fetch(`/api/songs/${songId}`);
+      const data = await response.json();
+      if (data.success) {
+        setSelectedSong(data.song);
+        setResult({
+          success: true,
+          creativeBrief: data.song.creativeBrief,
+          songStructure: data.song.songStructure,
+          evaluation: data.song.evaluation,
+          iterationCount: data.song.iterationCount,
+          trace: data.song.trace || [],
+        });
+        // Scroll to results
+        setTimeout(() => {
+          document.querySelector('.results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    } catch (err) {
+      console.error('Error fetching song:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load song');
+    }
+  };
+
+  // Delete a song
+  const handleDeleteSong = async (songId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this song?')) {
+      return;
+    }
+    try {
+      const response = await fetch(`/api/songs/${songId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Remove from history
+        setSongHistory((prev) => prev.filter((song) => song.id !== songId));
+        // If deleted song was selected, clear selection
+        if (selectedSong?.id === songId) {
+          setSelectedSong(null);
+          setResult(null);
+        }
+      }
+    } catch (err) {
+      console.error('Error deleting song:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete song');
+    }
+  };
+
+  // Export song as JSON
+  const handleExportJSON = (song: SavedSong, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const dataStr = JSON.stringify(song, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${song.songStructure.title || 'song'}-${song.id}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Export song as TXT
+  const handleExportTXT = (song: SavedSong, e: React.MouseEvent) => {
+    e.stopPropagation();
+    let txt = `${song.songStructure.title || 'Untitled Song'}\n`;
+    txt += `${'='.repeat(50)}\n\n`;
+    txt += `Input: ${song.inputEmotion}${song.inputGenre ? ` (${song.inputGenre})` : ''}\n`;
+    txt += `Generated: ${new Date(song.createdAt).toLocaleDateString()}\n`;
+    if (song.qualityScore !== null) {
+      txt += `Quality Score: ${song.qualityScore}/10\n`;
+    }
+    txt += `Iterations: ${song.iterationCount}/3\n\n`;
+    txt += `${'='.repeat(50)}\n\n`;
+    
+    song.songStructure.sections
+      .sort((a, b) => a.order - b.order)
+      .forEach((section) => {
+        txt += `[${section.type.toUpperCase()}]\n`;
+        txt += `${section.content}\n\n`;
+      });
+    
+    const dataBlob = new Blob([txt], { type: 'text/plain' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${song.songStructure.title || 'song'}-${song.id}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <main className="container">
       <h1>Songsmith</h1>
@@ -258,6 +402,22 @@ export default function Home() {
         </div>
 
         <div className="form-group">
+          <label htmlFor="language">Output Language:</label>
+          <select
+            id="language"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as 'en' | 'pt-BR')}
+            disabled={loading}
+          >
+            <option value="en">English</option>
+            <option value="pt-BR">Português (Brasil)</option>
+          </select>
+          <p className="form-hint">
+            Select the language for generated song lyrics and content.
+          </p>
+        </div>
+
+        <div className="form-group">
           <label className="checkbox-label">
             <input
               type="checkbox"
@@ -276,6 +436,82 @@ export default function Home() {
           <span>{loading ? 'Generating...' : 'Generate Draft'}</span>
         </button>
       </form>
+
+      {/* Song History Section */}
+      <div className="history-section">
+        <button
+          onClick={() => {
+            setShowHistory(!showHistory);
+            if (!showHistory) {
+              fetchSongHistory();
+            }
+          }}
+          className="history-toggle"
+        >
+          <span>{showHistory ? 'Hide' : 'Show'} History ({songHistory.length})</span>
+        </button>
+
+        {showHistory && (
+          <div className="history-list">
+            {loadingHistory ? (
+              <p className="history-empty">Loading history...</p>
+            ) : songHistory.length === 0 ? (
+              <p className="history-empty">No songs in history yet. Generate your first song!</p>
+            ) : (
+              <ul className="history-items">
+                {songHistory.map((song) => (
+                  <li
+                    key={song.id}
+                    className={`history-item ${selectedSong?.id === song.id ? 'history-item-selected' : ''}`}
+                    onClick={() => handleViewSong(song.id)}
+                  >
+                    <div className="history-item-header">
+                      <h4 className="history-item-title">
+                        {song.songStructure.title || 'Untitled Song'}
+                      </h4>
+                      <div className="history-item-actions">
+                        <button
+                          onClick={(e) => handleExportTXT(song, e)}
+                          className="history-action-button"
+                          title="Export as TXT"
+                        >
+                          📄
+                        </button>
+                        <button
+                          onClick={(e) => handleExportJSON(song, e)}
+                          className="history-action-button"
+                          title="Export as JSON"
+                        >
+                          💾
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteSong(song.id, e)}
+                          className="history-action-button history-action-delete"
+                          title="Delete"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                    <div className="history-item-meta">
+                      <span className="history-item-emotion">{song.inputEmotion}</span>
+                      {song.inputGenre && (
+                        <span className="history-item-genre">• {song.inputGenre}</span>
+                      )}
+                      {song.qualityScore !== null && (
+                        <span className="history-item-score">• {song.qualityScore.toFixed(1)}/10</span>
+                      )}
+                      <span className="history-item-date">
+                        • {new Date(song.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
 
       {error && (
         <div className="error-box">

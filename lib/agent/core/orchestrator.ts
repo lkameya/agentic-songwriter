@@ -485,8 +485,8 @@ export class Orchestrator implements IOrchestrator {
         };
       }
 
-      // If quality is acceptable, stop
-      if (!evaluationResult.needsImprovement || evaluationResult.quality >= 7) {
+      // If quality is acceptable (8.5+), stop
+      if (!evaluationResult.needsImprovement || evaluationResult.quality >= 8.5) {
         this.trace.add(
           createTraceEvent({
             type: 'reflect',
