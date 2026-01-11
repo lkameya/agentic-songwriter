@@ -38,6 +38,11 @@ export class EvaluateLyricsTool extends Tool {
     }
   }
 
+  private getModel(): string {
+    // Allow model override via environment variable, default to gpt-4-turbo-preview
+    return process.env.OPENAI_MODEL || 'gpt-4-turbo-preview';
+  }
+
   protected async executeInternal(input: unknown): Promise<LyricsEvaluation> {
     const { songStructure, language } = input as { 
       songStructure: SongStructure;
