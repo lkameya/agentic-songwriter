@@ -1,6 +1,12 @@
-# Agentic Songwriter
+# Songsmith
 
 A learning-first agentic AI project that demonstrates orchestrator patterns, tool interfaces, state management, and iterative improvement. This Next.js application helps songwriters create improved song drafts through an autonomous agent system.
+
+## 🎬 Demo
+
+![Songsmith Demo](./demo.gif)
+
+*Note: To add a demo GIF, you can use tools like [Kap](https://getkap.co/) (Mac), [Peek](https://github.com/phw/peek) (Linux), or [ScreenToGif](https://www.screentogif.com/) (Windows) to record your screen, then save it as a GIF.*
 
 ## ⚠️ Important: OpenAI API Key Required
 
