@@ -316,3 +316,32 @@ This project demonstrates agentic AI patterns for educational purposes, focusing
 ---
 
 **Built with**: Next.js 14, React, TypeScript, Zod, OpenAI API
+
+## 🧪 Testing
+
+This project includes a comprehensive test suite. See [TESTING.md](./TESTING.md) for detailed information.
+
+### Quick Start
+
+```bash
+# Install dependencies (includes test packages)
+npm install
+
+# Run tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
+```
+
+### Test Structure
+
+- **Unit Tests**: Core infrastructure (StateStore, ApprovalStore, Tool, Trace, Agents)
+- **Schema Tests**: Validation for all Zod schemas
+- **Integration Tests**: API route testing
+- **Mock Mode**: Tests run with `USE_MOCK_LLM=true` by default (no API calls)
+
+For more details, see [TESTING.md](./TESTING.md).

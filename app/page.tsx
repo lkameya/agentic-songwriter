@@ -32,15 +32,15 @@ export default function Dashboard() {
           <Link key={agent.id} href={agent.href} className="agent-card">
             <div className="agent-card-icon" style={{ color: agent.color }}>
               {agent.icon}
-            </div>
+        </div>
             <h2 className="agent-card-title">{agent.name}</h2>
             <p className="agent-card-description">{agent.description}</p>
             <div className="agent-card-action">
               <span>Launch →</span>
-            </div>
+        </div>
           </Link>
-        ))}
-      </div>
+                  ))}
+              </div>
     </main>
   );
 }
