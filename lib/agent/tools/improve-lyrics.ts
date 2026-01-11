@@ -16,6 +16,7 @@ export class ImproveLyricsTool extends Tool {
   inputSchema = z.object({
     songStructure: SongStructureSchema,
     evaluation: LyricsEvaluationSchema,
+    userFeedback: z.string().optional(),
   });
   
   outputSchema = SongStructureSchema;
@@ -39,9 +40,10 @@ export class ImproveLyricsTool extends Tool {
   }
 
   protected async executeInternal(input: unknown): Promise<SongStructure> {
-    const { songStructure, evaluation } = input as {
+    const { songStructure, evaluation, userFeedback } = input as {
       songStructure: SongStructure;
       evaluation: LyricsEvaluation;
+      userFeedback?: string;
     };
 
     // MOCK MODE: Generate improved song structure without API call
@@ -67,7 +69,7 @@ Return the improved song structure as JSON.`
         },
         {
           role: 'user',
-          content: `Improve this song based on the evaluation:
+          content: `Improve this song based on the evaluation${userFeedback ? ' and the following user feedback' : ''}:
 
 ORIGINAL SONG:
 Title: ${songStructure.title}
@@ -83,6 +85,7 @@ Quality Score: ${evaluation.quality}/10
 Strengths: ${evaluation.strengths.join(', ')}
 Weaknesses: ${evaluation.weaknesses.join(', ')}
 Suggestions: ${evaluation.suggestions.join(', ')}
+${userFeedback ? `\nUSER FEEDBACK:\n${userFeedback}\n\nPlease prioritize incorporating the user's feedback while addressing the evaluation suggestions.` : ''}
 
 Provide the improved song structure as JSON matching this exact format:
 {

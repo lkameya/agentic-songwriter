@@ -25,7 +25,16 @@ export class Orchestrator implements IOrchestrator {
   allowedTools: string[];
   stateStore: StateStore;
   trace: Trace;
-  humanInTheLoop?: (step: AgentStep) => Promise<boolean>;
+  humanInTheLoop?: (toolId: string, output: unknown) => Promise<{
+    decision: 'approve' | 'reject' | 'regenerate';
+    feedback?: string;
+  }>;
+  onProgress?: (update: {
+    phase: 'planning' | 'acting' | 'observing' | 'reflecting' | 'tool_call' | 'complete' | 'error';
+    message: string;
+    toolId?: string;
+    iterationCount?: number;
+  }) => void;
   private maxIterations: number;
   private currentSteps: number = 0;
   private currentToolCalls: number = 0;
@@ -41,7 +50,16 @@ export class Orchestrator implements IOrchestrator {
     stateStore: StateStore;
     trace: Trace;
     maxIterations?: number;
-    humanInTheLoop?: (step: AgentStep) => Promise<boolean>;
+    humanInTheLoop?: (toolId: string, output: unknown) => Promise<{
+      decision: 'approve' | 'reject' | 'regenerate';
+      feedback?: string;
+    }>;
+    onProgress?: (update: {
+      phase: 'planning' | 'acting' | 'observing' | 'reflecting' | 'tool_call' | 'complete' | 'error';
+      message: string;
+      toolId?: string;
+      iterationCount?: number;
+    }) => void;
   }) {
     this.maxSteps = config.maxSteps;
     this.maxToolCalls = config.maxToolCalls;
@@ -49,6 +67,7 @@ export class Orchestrator implements IOrchestrator {
     this.stateStore = config.stateStore;
     this.trace = config.trace;
     this.humanInTheLoop = config.humanInTheLoop;
+    this.onProgress = config.onProgress;
     this.maxIterations = config.maxIterations ?? 3;
   }
 
@@ -63,35 +82,20 @@ export class Orchestrator implements IOrchestrator {
 
       // Store initial input
       this.stateStore.set('initialInput', initialInput);
+      this.onProgress?.({ phase: 'planning', message: 'Initializing agent...' });
 
       // Main loop: plan → act → observe → reflect
       while (this.currentSteps < this.maxSteps) {
         this.currentSteps++;
 
         // PLAN: Get agent's decision
+        this.onProgress?.({ 
+          phase: 'planning', 
+          message: `Step ${this.currentSteps}: Planning next action...` 
+        });
         this.currentAgent = agent;
         const plan = await this.plan(agent, this.stateStore);
         const agentStep = this.currentAgentStep!; // Set by plan()
-        
-        // Check human-in-the-loop hook
-        if (this.humanInTheLoop) {
-          const shouldContinue = await this.humanInTheLoop(agentStep);
-          if (!shouldContinue) {
-            this.trace.add(
-              createTraceEvent({
-                type: 'agent_step',
-                agentId: agent.id,
-                metadata: { humanRejected: true },
-              })
-            );
-            return {
-              success: false,
-              finalState: this.stateStore.getAll(),
-              trace: this.trace.getAll(),
-              error: 'Execution stopped by human-in-the-loop',
-            };
-          }
-        }
 
         // If no actions, agent is done
         if (agentStep.actions.length === 0) {
@@ -106,10 +110,18 @@ export class Orchestrator implements IOrchestrator {
         }
 
         // ACT: Execute each action (tool call)
+        this.onProgress?.({ 
+          phase: 'acting', 
+          message: `Executing ${agentStep.actions.length} action(s)...` 
+        });
         const observations: Observation[] = [];
         for (const action of agentStep.actions) {
           // Check guardrails
           if (this.currentToolCalls >= this.maxToolCalls) {
+            this.onProgress?.({ 
+              phase: 'error', 
+              message: `Max tool calls (${this.maxToolCalls}) exceeded` 
+            });
             return {
               success: false,
               finalState: this.stateStore.getAll(),
@@ -135,7 +147,23 @@ export class Orchestrator implements IOrchestrator {
               throw new Error(`Tool ${action.toolId} not found`);
             }
 
+            // Get friendly tool name
+            const toolNames: Record<string, string> = {
+              'generate-song-structure': 'Generating Song Structure',
+              'evaluate-lyrics': 'Evaluating Lyrics Quality',
+              'improve-lyrics': 'Improving Lyrics',
+            };
+            const toolDisplayName = toolNames[action.toolId] || action.toolId;
+            const iterationCount = (this.stateStore.get('iterationCount') as number) || 0;
+
             // Record tool call start
+            this.onProgress?.({ 
+              phase: 'tool_call', 
+              message: `Running: ${toolDisplayName}...`,
+              toolId: action.toolId,
+              iterationCount,
+            });
+
             this.trace.add(
               createTraceEvent({
                 type: 'tool_call',
@@ -145,7 +173,93 @@ export class Orchestrator implements IOrchestrator {
             );
 
             // Execute the tool
-            const output = await tool.execute(action.input);
+            let output = await tool.execute(action.input);
+
+            // Human-in-the-loop: Approve the output (for tools that generate content)
+            if (this.humanInTheLoop && (action.toolId === 'generate-song-structure' || action.toolId === 'improve-lyrics')) {
+              this.onProgress?.({ 
+                phase: 'observing', 
+                message: `Waiting for approval of generated content...` 
+              });
+              
+              const approvalResult = await this.humanInTheLoop(action.toolId, output);
+              
+              if (approvalResult.decision === 'reject') {
+                this.trace.add(
+                  createTraceEvent({
+                    type: 'tool_call',
+                    toolId: action.toolId,
+                    input: action.input,
+                    output: output,
+                    metadata: { humanRejected: true },
+                  })
+                );
+                return {
+                  success: false,
+                  finalState: this.stateStore.getAll(),
+                  trace: this.trace.getAll(),
+                  error: 'Content generation rejected by human-in-the-loop',
+                };
+              } else if (approvalResult.decision === 'regenerate') {
+                // Retry the tool execution with feedback if provided
+                this.onProgress?.({ 
+                  phase: 'tool_call', 
+                  message: approvalResult.feedback 
+                    ? `Regenerating with your feedback: ${toolDisplayName}...`
+                    : `Regenerating: ${toolDisplayName}...`,
+                  toolId: action.toolId,
+                });
+                
+                // Prepare input with feedback if regenerating
+                let toolInput = action.input;
+                if (approvalResult.feedback) {
+                  if (action.toolId === 'improve-lyrics') {
+                    toolInput = {
+                      ...(action.input as Record<string, unknown>),
+                      userFeedback: approvalResult.feedback,
+                    };
+                  } else if (action.toolId === 'generate-song-structure') {
+                    // Pass feedback directly to generate-song-structure tool
+                    // Ensure we preserve all CreativeBrief fields
+                    const briefInput = action.input as Record<string, unknown>;
+                    toolInput = {
+                      lyrics: briefInput.lyrics,
+                      emotion: briefInput.emotion,
+                      mood: briefInput.mood,
+                      themes: briefInput.themes,
+                      ...(briefInput.genre ? { genre: briefInput.genre } : {}),
+                      ...(briefInput.tempo ? { tempo: briefInput.tempo } : {}),
+                      ...(briefInput.style ? { style: briefInput.style } : {}),
+                      userFeedback: approvalResult.feedback,
+                    };
+                  }
+                }
+                
+                output = await tool.execute(toolInput);
+                
+                // Clear feedback after use
+                if (action.toolId === 'generate-song-structure') {
+                  this.stateStore.set('userFeedback', undefined);
+                }
+                
+                // After regeneration, if human-in-the-loop is enabled, ask for approval again
+                // But first, check if we should continue (we already have the regenerated output)
+                // For now, we'll approve regenerated content automatically to avoid double approval
+                // If the user wants to approve regenerated content, they can enable human-in-the-loop
+                // and it will be called again in the next tool execution
+                
+                this.onProgress?.({ 
+                  phase: 'observing', 
+                  message: `Regeneration completed: ${toolDisplayName}` 
+                });
+              } else {
+                // approve - continue with current output
+                this.onProgress?.({ 
+                  phase: 'observing', 
+                  message: `Content approved: ${toolDisplayName}` 
+                });
+              }
+            }
 
             // Record successful tool call
             this.trace.add(
@@ -168,9 +282,18 @@ export class Orchestrator implements IOrchestrator {
             const executedAction = await this.act(agent, plan);
             
             // Observe the result
+            this.onProgress?.({ 
+              phase: 'observing', 
+              message: `Capturing output from ${toolDisplayName}...` 
+            });
             const observation = await this.observe(executedAction);
             observations.push(observation);
             this.currentToolCalls++;
+            
+            this.onProgress?.({ 
+              phase: 'observing', 
+              message: `Completed: ${toolDisplayName}` 
+            });
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             this.trace.add(
@@ -194,10 +317,28 @@ export class Orchestrator implements IOrchestrator {
         agentStep.observations = observations;
 
         // REFLECT: Decide if we should continue
+        const iterationCount = (this.stateStore.get('iterationCount') as number) || 0;
+        this.onProgress?.({ 
+          phase: 'reflecting', 
+          message: `Evaluating progress... ${iterationCount > 0 ? `(Iteration ${iterationCount}/${this.maxIterations})` : ''}`,
+          iterationCount,
+        });
         const lastObservation = observations[observations.length - 1];
         const reflection = await this.reflect(this.stateStore, lastObservation);
 
         agentStep.reflection = reflection;
+        
+        if (!reflection.shouldContinue) {
+          this.onProgress?.({ 
+            phase: 'reflecting', 
+            message: `Goal achieved: ${reflection.reasoning}` 
+          });
+        } else {
+          this.onProgress?.({ 
+            phase: 'reflecting', 
+            message: `Continuing: ${reflection.reasoning}` 
+          });
+        }
 
         // Record agent step in trace
         this.trace.add(
@@ -216,6 +357,7 @@ export class Orchestrator implements IOrchestrator {
       }
 
       // Return result
+      this.onProgress?.({ phase: 'complete', message: 'Song generation completed!' });
       return {
         success: true,
         finalState: this.stateStore.getAll(),
@@ -223,6 +365,7 @@ export class Orchestrator implements IOrchestrator {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.onProgress?.({ phase: 'error', message: `Error: ${errorMessage}` });
       this.trace.add(
         createTraceEvent({
           type: 'agent_step',

@@ -13,7 +13,9 @@ export class GenerateSongStructureTool extends Tool {
   name = 'GenerateSongStructure';
   description = 'Generates a complete song structure (title, verses, chorus, bridge, etc.) from a creative brief';
   
-  inputSchema = CreativeBriefSchema;
+  inputSchema = CreativeBriefSchema.extend({
+    userFeedback: z.string().optional(),
+  });
   outputSchema = SongStructureSchema;
 
   private openai?: OpenAI;
@@ -35,7 +37,10 @@ export class GenerateSongStructureTool extends Tool {
   }
 
   protected async executeInternal(input: unknown): Promise<SongStructure> {
-    const brief = input as CreativeBrief;
+    // Input is validated by Zod, so it should match CreativeBrief + optional userFeedback
+    const inputData = input as CreativeBrief & { userFeedback?: string };
+    const { userFeedback, ...briefData } = inputData;
+    const brief = briefData as CreativeBrief;
 
     // MOCK MODE: Generate sample song structure without API call
     if (this.useMock) {
@@ -63,6 +68,7 @@ Themes: ${brief.themes.join(', ')}
 ${brief.genre ? `Genre: ${brief.genre}` : ''}
 ${brief.tempo ? `Tempo: ${brief.tempo}` : ''}
 ${brief.style ? `Style: ${brief.style}` : ''}
+${userFeedback ? `\nIMPORTANT USER FEEDBACK:\n${userFeedback}\n\nPlease incorporate this feedback into the song lyrics.` : ''}
 
 Provide the song structure as JSON with this exact format:
 {

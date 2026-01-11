@@ -26,7 +26,10 @@ export interface Orchestrator {
   allowedTools: string[];
   stateStore: StateStore;
   trace: Trace;
-  humanInTheLoop?: (step: AgentStep) => Promise<boolean>;
+  humanInTheLoop?: (toolId: string, output: unknown) => Promise<{
+    decision: 'approve' | 'reject' | 'regenerate';
+    feedback?: string;
+  }>;
   
   run(agent: Agent, initialInput: unknown): Promise<OrchestratorResult>;
   plan(agent: Agent, state: StateStore): Promise<Plan>; // Rule-based: analyzes agent goal and state to determine next action

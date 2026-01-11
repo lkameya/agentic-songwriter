@@ -188,16 +188,23 @@ export class BriefAgent extends Agent {
           throw new Error('ImproveLyrics tool not found');
         }
 
+        // Check if there's user feedback from human-in-the-loop
+        const userFeedback = state.get('userFeedback') as string | undefined;
+        
         return {
           agentId: this.id,
           plan: {
             steps: ['ImproveLyrics'],
-            reasoning: `Quality ${evaluation.quality}/10 needs improvement. Attempting improvement (iteration ${nextIterationCount}/${this.maxIterations})`
+            reasoning: `Quality ${evaluation.quality}/10 needs improvement. Attempting improvement (iteration ${nextIterationCount}/${this.maxIterations})${userFeedback ? ' with user feedback' : ''}`
           },
           actions: [{
             type: 'tool_call' as const,
             toolId: 'improve-lyrics',
-            input: { songStructure, evaluation }
+            input: { 
+              songStructure, 
+              evaluation,
+              ...(userFeedback && { userFeedback })
+            }
           }],
           observations: [],
         };
