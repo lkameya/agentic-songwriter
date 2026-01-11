@@ -211,8 +211,8 @@ export default function Home() {
 
   return (
     <main className="container">
-      <h1>Agentic Songwriter</h1>
-      <p className="subtitle">Create song drafts with AI agents</p>
+      <h1>Songsmith</h1>
+      <p className="subtitle">Crafting songs with intelligent agents</p>
 
       <form onSubmit={handleSubmit} className="form">
         <div className="form-group">
@@ -273,7 +273,7 @@ export default function Home() {
         </div>
 
         <button type="submit" disabled={loading || approvalRequest !== null} className="submit-button">
-          {loading ? 'Generating...' : 'Generate Draft'}
+          <span>{loading ? 'Generating...' : 'Generate Draft'}</span>
         </button>
       </form>
 
@@ -335,7 +335,7 @@ export default function Home() {
               className="approve-button"
               disabled={isSubmittingApproval}
             >
-              ✓ Approve & Continue
+              <span>Approve</span>
             </button>
             {feedback.trim() ? (
               <button
@@ -343,7 +343,7 @@ export default function Home() {
                 className="regenerate-with-feedback-button"
                 disabled={isSubmittingApproval}
               >
-                🔄 Regenerate with Feedback
+                <span>Regenerate with Feedback</span>
               </button>
             ) : (
               <button
@@ -351,7 +351,7 @@ export default function Home() {
                 className="regenerate-button"
                 disabled={isSubmittingApproval}
               >
-                🔄 Regenerate
+                <span>Regenerate</span>
               </button>
             )}
             <button
@@ -359,7 +359,7 @@ export default function Home() {
               className="reject-button"
               disabled={isSubmittingApproval}
             >
-              ✗ Reject & Stop
+              <span>Reject</span>
             </button>
           </div>
         </div>
@@ -519,12 +519,12 @@ export default function Home() {
           </section>
 
           <section className="result-section">
-            <button
-              onClick={() => setShowTrace(!showTrace)}
-              className="trace-toggle"
-            >
-              {showTrace ? 'Hide' : 'Show'} Trace (JSON)
-            </button>
+                  <button
+                    onClick={() => setShowTrace(!showTrace)}
+                    className="trace-toggle"
+                  >
+                    <span>{showTrace ? 'Hide' : 'Show'} Trace</span>
+                  </button>
             {showTrace && (
               <pre className="trace-display">
                 {JSON.stringify(result.trace, null, 2)}

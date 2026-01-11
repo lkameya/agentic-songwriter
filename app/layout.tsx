@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Agentic Songwriter',
-  description: 'Create song drafts with AI agents',
+  title: 'Songsmith',
+  description: 'Crafting songs with intelligent agents',
 };
 
 export default function RootLayout({
