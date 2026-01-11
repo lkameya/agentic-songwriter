@@ -557,6 +557,15 @@ export class Orchestrator implements IOrchestrator {
       this.stateStore.set('songStructure', output);
       // Clear evaluation so it gets re-evaluated
       this.stateStore.set('evaluation', undefined);
+    } else if (toolId === 'generate-melody') {
+      this.stateStore.set('melodyStructure', output);
+    } else if (toolId === 'evaluate-melody') {
+      this.stateStore.set('evaluation', output);
+    } else if (toolId === 'improve-melody') {
+      // Improved melody replaces the old one
+      this.stateStore.set('melodyStructure', output);
+      // Clear evaluation so it gets re-evaluated
+      this.stateStore.set('evaluation', undefined);
     }
   }
 
@@ -567,6 +576,10 @@ export class Orchestrator implements IOrchestrator {
     if (toolId === 'generate-song-structure' || toolId === 'improve-lyrics') {
       return 'songStructure';
     } else if (toolId === 'evaluate-lyrics') {
+      return 'evaluation';
+    } else if (toolId === 'generate-melody' || toolId === 'improve-melody') {
+      return 'melodyStructure';
+    } else if (toolId === 'evaluate-melody') {
       return 'evaluation';
     }
     return toolId;

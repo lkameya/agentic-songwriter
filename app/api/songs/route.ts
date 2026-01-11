@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
       inputLyrics: song.inputLyrics,
       inputEmotion: song.inputEmotion,
       inputGenre: song.inputGenre,
+      language: song.language,
       creativeBrief: song.creativeBrief ? JSON.parse(song.creativeBrief) as CreativeBrief : null,
       songStructure: JSON.parse(song.songStructure) as SongStructure,
       evaluation: song.evaluation ? JSON.parse(song.evaluation) as LyricsEvaluation : null,

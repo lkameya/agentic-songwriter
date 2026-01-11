@@ -19,6 +19,7 @@
     "prisma": "^5.19.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "tone": "^15.0.4",
     "zod": "^3.22.4"
   },
   "devDependencies": {

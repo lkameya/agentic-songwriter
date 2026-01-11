@@ -18,6 +18,7 @@ model Song {
   inputLyrics   String
   inputEmotion  String
   inputGenre    String?
+  language      String   @default("en")
   
   // Generated data (stored as JSON strings)
   creativeBrief String?  // JSON string of CreativeBrief
@@ -33,6 +34,32 @@ model Song {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   
+  // Relations
+  melodies      Melody[]
+  
   @@index([createdAt])
   @@index([qualityScore])
+}
+
+model Melody {
+  id            String   @id @default(cuid())
+  songId        String
+  song          Song     @relation(fields: [songId], references: [id])
+  
+  // MIDI data (stored as JSON)
+  midiStructure String   // JSON string of MIDI structure
+  tempo         Int      // BPM
+  key           String   // e.g., "C major", "A minor"
+  timeSignature String   // e.g., "4/4"
+  
+  // Metadata
+  qualityScore  Float?
+  iterationCount Int     @default(0)
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([songId])
+  @@index([createdAt])
 }
