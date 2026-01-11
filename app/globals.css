@@ -1548,3 +1548,104 @@ h1 {
   color: var(--text-secondary);
   font-size: 0.875rem;
 }
+
+/* Lyrics Display Styles */
+.lyrics-display {
+  margin-top: 2rem;
+  padding: 2rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 0;
+}
+
+.song-title-display {
+  font-family: 'Crimson Pro', serif;
+  font-size: 1.75rem;
+  font-weight: 400;
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.lyrics-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.lyrics-section {
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 0;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+}
+
+.lyrics-section-playing {
+  opacity: 1;
+  border-color: var(--border-primary);
+}
+
+.lyrics-section-active {
+  opacity: 1;
+  border-left: 3px solid var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.lyrics-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.lyrics-section-type {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.lyrics-section-beats {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.lyrics-section-content {
+  color: var(--text-secondary);
+  line-height: 1.8;
+  font-size: 0.9375rem;
+  white-space: pre-wrap;
+}
+
+.lyrics-line {
+  margin-bottom: 0.5rem;
+  min-height: 1.5em;
+  padding: 0.5rem 0.75rem;
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+  border-radius: 0;
+  transition: all 0.2s ease;
+}
+
+.lyrics-line-active {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-weight: 500;
+  border-left: 3px solid var(--text-primary);
+  padding-left: calc(0.75rem - 3px);
+}
+
+.lyrics-section-active .lyrics-section-content {
+  color: var(--text-primary);
+}
+
+.lyrics-section-active .lyrics-section-type {
+  color: var(--text-primary);
+  font-weight: 700;
+}

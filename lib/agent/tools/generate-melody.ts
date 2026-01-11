@@ -65,24 +65,57 @@ export class GenerateMelodyTool extends Tool {
       messages: [
         {
           role: 'system',
-          content: `You are a professional music composer specializing in creating melodies that perfectly match lyrics. Generate MIDI note sequences that align with the rhythm, emotion, and mood of the lyrics.
+          content: `You are an award-winning professional music composer and songwriter with decades of experience creating sophisticated, memorable melodies for hit songs. Generate professional-grade MIDI note sequences that perfectly match lyrics with exceptional musical quality.
 
-MELODY GENERATION REQUIREMENTS:
-- Match the emotional tone and mood of the lyrics
-- Create melodies that flow naturally with the rhythm of the words
-- Use appropriate musical scales and keys for the emotion (e.g., major for happy, minor for sad)
-- Create memorable, singable melodies
-- Ensure proper musical phrasing and structure
-- Match the tempo and time signature preferences if provided
-- Generate multiple tracks if needed (e.g., melody, harmony, bass)
+PROFESSIONAL MELODY COMPOSITION REQUIREMENTS:
+
+1. NOTE DENSITY (CRITICAL):
+   - Generate DENSE melodies with 4-8 notes per line of lyrics (not sparse)
+   - Each syllable/word should typically have 1-2 notes, with more for emphasized words
+   - Use varied note durations (eighth notes, quarter notes, half notes, sixteenth notes)
+   - Include passing tones, grace notes, and melodic embellishments for musical interest
+   - Aim for professional-level complexity, not simple nursery-rhyme melodies
+
+2. MELODIC STRUCTURE & PHRASING:
+   - Create well-shaped melodic phrases that have clear beginning, middle, and end
+   - Use melodic contour (ascending, descending, arch-shaped phrases) for musical interest
+   - Build phrases that breathe and flow naturally with the lyrics
+   - Create melodic motifs and variations (repeat and develop musical ideas)
+   - Use step-wise motion primarily, with strategic leaps for emphasis
+
+3. MUSICAL SOPHISTICATION:
+   - Add melodic interest through: sequences, suspensions, appoggiaturas, and passing tones
+   - Create rhythmic variety (syncopation, varied note values, rhythmic patterns)
+   - Use chromatic passing tones and neighboring tones for color
+   - Vary melodic contour between sections (verse vs chorus should have different character)
+   - Build melodic climaxes at important lyrical moments
+
+4. EMOTIONAL EXPRESSION:
+   - Match the emotional tone and mood of the lyrics precisely
+   - Use appropriate musical scales and modes for the emotion (major, minor, modal, etc.)
+   - Create melodies that enhance the emotional impact of the words
+   - Use dynamics (velocity) to emphasize important words/phrases
+   - Create musical tension and release that matches lyrical content
+
+5. VOCAL CONSIDERATIONS:
+   - Write singable melodies (avoid extreme leaps, consider vocal range)
+   - Match melodic rhythm to natural speech rhythms of the lyrics
+   - Create memorable melodic hooks, especially in the chorus
+   - Use melodic repetition strategically (but with variation)
+
+6. SECTION VARIATION:
+   - Verses: More restrained, narrative quality
+   - Chorus: More memorable, higher energy, stronger melodic hooks
+   - Bridge: Contrasting melodic material, new musical ideas
+   - Intro/Outro: Establish or resolve melodic themes
 
 MIDI NOTE FORMAT:
 - MIDI note numbers: 0-127 (C4 = 60, middle C)
-- Velocity: 0-127 (loudness, typically 60-100 for melodies)
-- startTime: In beats (0.0 = start of song)
-- duration: In beats (e.g., 0.5 = eighth note, 1.0 = quarter note, 2.0 = half note)
+- Velocity: 0-127 (use 70-110 for main melody, vary for expression)
+- startTime: In beats (0.0 = start of song, precise to 0.25 beats minimum)
+- duration: In beats (use varied durations: 0.25 = sixteenth, 0.5 = eighth, 1.0 = quarter, 1.5 = dotted quarter, 2.0 = half, etc.)
 
-Return a complete melody structure with tempo, key, time signature, and tracks containing MIDI notes.`
+CRITICAL: Generate PROFESSIONAL-LEVEL melodies with high note density (4-8 notes per line), sophisticated phrasing, and musical interest throughout. This should sound like a professional songwriter's work, not a simple exercise.`
         },
         {
           role: 'user',
@@ -102,15 +135,46 @@ ${songStructure.sections
   .map(s => `${s.type.toUpperCase()} (order ${s.order}):\n${s.content}`)
   .join('\n\n')}
 
-Create a melody that:
-1. Matches the emotional tone (${emotion}, ${mood})
-2. Flows naturally with the rhythm of the lyrics
-3. Uses appropriate musical scales for the emotion
-4. Creates memorable, singable melodies
-5. Includes at least one main melody track
-${tempo ? `6. Uses tempo ${tempo} BPM` : ''}
-${key ? `7. Uses key ${key}` : ''}
-${timeSignature ? `8. Uses time signature ${timeSignature}` : ''}
+Create a PROFESSIONAL-LEVEL melody that:
+
+1. **NOTE DENSITY**: Generate 4-8 notes per line of lyrics (DENSE, not sparse)
+   - Each word/syllable should typically have 1-2 notes
+   - Use varied note durations (eighth notes, quarter notes, sixteenth notes, etc.)
+   - Include melodic embellishments and passing tones for sophistication
+
+2. **MELODIC QUALITY**: Professional composition techniques
+   - Create well-shaped melodic phrases with clear contour
+   - Use melodic motifs that repeat and vary throughout
+   - Add rhythmic interest (syncopation, varied note values)
+   - Build melodic climaxes at important lyrical moments
+   - Use step-wise motion with strategic leaps
+
+3. **EMOTIONAL MATCH**: 
+   - Matches the emotional tone (${emotion}, ${mood})
+   - Uses appropriate musical scales and modes for the emotion
+   - Enhances the emotional impact of the lyrics
+
+4. **SECTION VARIATION**:
+   - Verse: More narrative, restrained quality
+   - Chorus: Memorable hooks, higher energy, stronger melodic ideas
+   - Bridge: Contrasting melodic material
+   - Each section should have distinct melodic character
+
+5. **COVERAGE**: 
+   - COVERS THE ENTIRE SONG - generate notes for ALL sections and ALL lines
+   - Estimate 4-8 beats per line of lyrics (2 bars per line in 4/4)
+   - Generate notes for every word/syllable, not just a few sparse notes
+   - Total beats = (number of lines) × (4-8 beats per line)
+
+6. **MUSICAL SOPHISTICATION**:
+   - Include passing tones, neighboring tones, and melodic embellishments
+   - Vary velocity (70-110) to emphasize important words
+   - Create memorable melodic hooks, especially in the chorus
+   - Use musical tension and release appropriately
+
+${tempo ? `7. Uses tempo ${tempo} BPM` : '7. Uses appropriate tempo for the style'}
+${key ? `8. Uses key ${key}` : '8. Uses appropriate key for the emotion'}
+${timeSignature ? `9. Uses time signature ${timeSignature}` : '9. Uses 4/4 time signature'}
 
 Provide the melody structure as JSON with this exact format:
 {
@@ -136,7 +200,7 @@ Provide the melody structure as JSON with this exact format:
         }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.8,
+      temperature: 0.9, // Higher temperature for more creative, varied melodies
     });
 
     const content = completion.choices[0]?.message?.content;
@@ -160,26 +224,48 @@ Provide the melody structure as JSON with this exact format:
     const defaultKey = key || (emotion === 'sad' || mood === 'melancholic' ? 'A minor' : 'C major');
     const defaultTimeSignature = timeSignature || '4/4';
     
-    // Generate simple melody notes
+    // Generate professional-level dense melody notes
     const baseNote = emotion === 'sad' || mood === 'melancholic' ? 57 : 60; // A3 or C4
     const notes: Array<{ note: number; velocity: number; startTime: number; duration: number }> = [];
     
-    // Create a simple melody pattern
+    // Create a more sophisticated melody pattern with higher note density
     let currentBeat = 0;
     const sections = songStructure.sections.sort((a, b) => a.order - b.order);
     
     sections.forEach((section, idx) => {
-      const sectionBeats = 8; // 8 beats per section (2 bars in 4/4)
-      const sectionNotes = 4; // 4 notes per section
+      // Calculate beats per section based on number of lines
+      const sectionLines = section.content.split('\n').filter(l => l.trim());
+      const linesCount = sectionLines.length || 4; // Default to 4 if empty
+      const beatsPerLine = 6; // 6 beats per line (1.5 bars in 4/4) for more space
+      const sectionBeats = linesCount * beatsPerLine;
+      
+      // Professional density: 5-7 notes per line (not just 2)
+      const notesPerLine = 6;
+      const sectionNotes = linesCount * notesPerLine;
+      const noteSpacing = sectionBeats / sectionNotes;
       
       for (let i = 0; i < sectionNotes; i++) {
-        const noteOffset = i % 4;
-        const note = baseNote + noteOffset * 2; // Simple ascending pattern
+        const lineIndex = Math.floor(i / notesPerLine);
+        const noteInLine = i % notesPerLine;
+        const beatPosition = currentBeat + (i * noteSpacing);
+        
+        // Create more sophisticated melodic pattern with variation
+        const patternOffset = (noteInLine % 4) * 2; // Step-wise motion with small leaps
+        const sectionVariation = idx % 2 === 0 ? 0 : 2; // Vary by section
+        const note = baseNote + patternOffset + sectionVariation;
+        
+        // Vary durations for interest (eighth notes, quarter notes, dotted notes)
+        const durations = [0.5, 0.5, 0.75, 1.0, 0.5, 1.25];
+        const duration = durations[noteInLine % durations.length];
+        
+        // Vary velocity for expression (70-95)
+        const velocity = 75 + (noteInLine % 5) * 4;
+        
         notes.push({
           note: Math.min(127, Math.max(0, note)),
-          velocity: 80,
-          startTime: currentBeat + (i * sectionBeats / sectionNotes),
-          duration: sectionBeats / sectionNotes,
+          velocity: Math.min(127, Math.max(70, velocity)),
+          startTime: Math.round(beatPosition * 100) / 100, // Round to 2 decimals
+          duration: duration,
         });
       }
       

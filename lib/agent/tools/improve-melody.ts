@@ -60,19 +60,42 @@ export class ImproveMelodyTool extends Tool {
       messages: [
         {
           role: 'system',
-          content: `You are a professional music composer. Dramatically improve the melody based on evaluation feedback.
+          content: `You are an award-winning professional music composer. Dramatically improve the melody based on evaluation feedback to achieve professional-level quality.
 
-IMPROVEMENT REQUIREMENTS:
-- Address ALL weaknesses identified in the evaluation
-- Incorporate ALL suggested improvements
-- Maintain harmony with the lyrics
-- Preserve the emotional tone and mood
-- Improve rhythm quality and musicality
-- Add variation and interest while maintaining coherence
-- Ensure the melody remains singable and memorable
-- Target quality 8.5+ for musicality and harmony
+PROFESSIONAL IMPROVEMENT REQUIREMENTS:
 
-Return the improved melody structure as JSON with the same format as the original.`
+1. NOTE DENSITY:
+   - Increase note density if melody is too sparse (aim for 4-8 notes per line)
+   - Add melodic embellishments, passing tones, and neighboring tones
+   - Use varied note durations (eighth, sixteenth, quarter, dotted notes)
+   - Ensure every line has substantial melodic content
+
+2. MELODIC SOPHISTICATION:
+   - Add musical interest through: sequences, suspensions, appoggiaturas
+   - Create better melodic phrasing with clear contours
+   - Use rhythmic variety (syncopation, varied note values)
+   - Build melodic motifs and develop them throughout
+   - Add melodic climaxes at important lyrical moments
+
+3. QUALITY IMPROVEMENTS:
+   - Address ALL weaknesses identified in the evaluation
+   - Incorporate ALL suggested improvements
+   - Improve melodic contour and phrasing
+   - Enhance musical interest and sophistication
+   - Create more memorable melodic hooks
+
+4. MAINTAIN QUALITY:
+   - Preserve harmony with the lyrics (melody matches word rhythm)
+   - Maintain the emotional tone and mood
+   - Ensure the melody remains singable
+   - Keep musical coherence and flow
+
+5. TARGET QUALITY:
+   - Achieve professional-level quality (8.5+ score)
+   - Create melodies that sound like professional songwriter work
+   - Avoid simple, repetitive, or amateur-sounding melodies
+
+Return the dramatically improved, professional-level melody structure as JSON with the same format as the original.`
         },
         {
           role: 'user',
@@ -128,7 +151,7 @@ Provide the improved melody structure as JSON with this exact format:
         }
       ],
       response_format: { type: 'json_object' },
-      temperature: 0.8,
+      temperature: 0.9, // Higher temperature for more creative improvements
     });
 
     const content = completion.choices[0]?.message?.content;

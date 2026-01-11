@@ -9,9 +9,10 @@ interface MelodyPlayerProps {
   onPlay?: () => void;
   onPause?: () => void;
   onStop?: () => void;
+  onTimeUpdate?: (currentBeat: number, currentTime: number) => void;
 }
 
-export function MelodyPlayer({ melody, onPlay, onPause, onStop }: MelodyPlayerProps) {
+export function MelodyPlayer({ melody, onPlay, onPause, onStop, onTimeUpdate }: MelodyPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -99,6 +100,12 @@ export function MelodyPlayer({ melody, onPlay, onPause, onStop }: MelodyPlayerPr
     intervalRef.current = setInterval(() => {
       const elapsed = Tone.Transport.seconds;
       setCurrentTime(elapsed);
+      
+      // Calculate current beat
+      const currentBeat = elapsed / secondsPerBeat;
+      
+      // Notify parent of time update
+      onTimeUpdate?.(currentBeat, elapsed);
       
       const totalDuration = melody.totalBeats * secondsPerBeat;
       

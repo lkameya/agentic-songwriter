@@ -58,27 +58,51 @@ export class EvaluateMelodyTool extends Tool {
       messages: [
         {
           role: 'system',
-          content: `You are an expert music critic and composer. Evaluate melodies with high standards for musicality, emotional resonance, and harmony with lyrics.
+          content: `You are an expert music critic, composer, and professional songwriter with decades of experience. Evaluate melodies with PROFESSIONAL standards for musicality, sophistication, and harmony with lyrics.
 
-EVALUATION CRITERIA:
-- **Harmony with Lyrics**: Does the melody match the rhythm, phrasing, and emotional tone of the lyrics?
-- **Emotional Match**: Does the melody convey the intended emotion and mood?
-- **Rhythm Quality**: Is the rhythm natural, flowing, and appropriate for the lyrics?
-- **Musicality**: Is the melody musically coherent, memorable, and singable?
-- **Structure**: Does the melody follow good musical structure and phrasing?
-- **Key and Scale**: Is the key appropriate for the emotion and mood?
-- **Tempo**: Is the tempo suitable for the song's emotion and style?
-- **Overall Polish**: Professional quality and refinement
+EVALUATION CRITERIA (Professional Standards):
+
+1. NOTE DENSITY & COMPLEXITY:
+   - Does the melody have sufficient note density (4-8 notes per line)?
+   - Is it professional-level complexity, not overly simple?
+   - Are there melodic embellishments, passing tones, and musical interest?
+   - Or is it too sparse/simple (like a nursery rhyme)?
+
+2. MELODIC SOPHISTICATION:
+   - Does it use professional composition techniques (phrases, motifs, contour)?
+   - Is there rhythmic variety (syncopation, varied note values)?
+   - Are there melodic climaxes and well-shaped phrases?
+   - Does it avoid repetitive, amateur-sounding patterns?
+
+3. HARMONY WITH LYRICS:
+   - Does the melody match the rhythm, phrasing, and emotional tone of the lyrics?
+   - Does it enhance the meaning and emotional impact of the words?
+   - Are important words emphasized appropriately?
+
+4. EMOTIONAL MATCH:
+   - Does the melody convey the intended emotion and mood?
+   - Is the key/scale appropriate for the emotion?
+
+5. MUSICAL QUALITY:
+   - Is the melody musically coherent, memorable, and singable?
+   - Does it follow good musical structure and phrasing?
+   - Is there variation between sections (verse vs chorus)?
+   - Does it have memorable melodic hooks?
+
+6. PROFESSIONAL POLISH:
+   - Does it sound like professional songwriter work?
+   - Is it refined and sophisticated, not amateur?
+   - Overall production-ready quality?
 
 SCORING GUIDELINES:
-- 9-10: Exceptional melody, perfect harmony with lyrics, highly memorable
-- 8-8.9: Strong melody, good harmony, memorable
-- 7-7.9: Decent melody but some issues with harmony or musicality
-- Below 7: Significant issues, needs improvement
+- 9-10: Exceptional professional melody, sophisticated, highly memorable, perfect execution
+- 8-8.9: Strong professional melody, good sophistication, memorable
+- 7-7.9: Decent melody but lacks sophistication or has notable issues
+- Below 7: Too simple, sparse, or amateur-sounding - needs significant improvement
 
-Set needsImprovement to TRUE if quality < 8.5 OR if there are significant issues with harmony, rhythm, or musicality.
+Set needsImprovement to TRUE if quality < 8.5 OR if melody is too sparse/simple OR lacks professional sophistication.
 
-Provide a quality score (0-10), list strengths, weaknesses, specific suggestions, and whether improvement is needed.`
+Provide a quality score (0-10), list strengths, weaknesses, specific suggestions (focus on note density and sophistication if needed), and whether improvement is needed.`
         },
         {
           role: 'user',

@@ -6,6 +6,7 @@ import { MelodyStructure } from '@/lib/agent/schemas/melody';
 import { MelodyEvaluation } from '@/lib/agent/schemas/melody-evaluation';
 import { SongStructure } from '@/lib/agent/schemas/song-structure';
 import { MelodyPlayer } from '@/app/components/melody-player';
+import { LyricsDisplay } from '@/app/components/lyrics-display';
 
 interface ProgressUpdate {
   phase: 'planning' | 'acting' | 'observing' | 'reflecting' | 'tool_call' | 'complete' | 'error';
@@ -41,16 +42,19 @@ export default function MelodyAgent() {
   const [timeSignature, setTimeSignature] = useState<string>('4/4');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedSong, setSelectedSong] = useState<SavedSong | null>(null);
   const [result, setResult] = useState<{
     melodyStructure: MelodyStructure | null;
     evaluation: MelodyEvaluation | null;
     iterationCount: number;
+    songStructure?: SongStructure | null;
   } | null>(null);
   const [progress, setProgress] = useState<ProgressUpdate | null>(null);
   const [progressHistory, setProgressHistory] = useState<ProgressUpdate[]>([]);
   const [melodyHistory, setMelodyHistory] = useState<SavedMelody[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [currentBeat, setCurrentBeat] = useState(0);
 
   // Fetch songs for dropdown
   useEffect(() => {
@@ -76,6 +80,27 @@ export default function MelodyAgent() {
     if (!selectedSongId) {
       setError('Please select a song');
       return;
+    }
+
+    // Fetch and store the selected song structure
+    const selectedSongData = songs.find(s => s.id === selectedSongId);
+    if (selectedSongData) {
+      setSelectedSong(selectedSongData);
+    } else {
+      // Fetch song if not in list
+      try {
+        const songResponse = await fetch(`/api/songs/${selectedSongId}`);
+        const songData = await songResponse.json();
+        if (songData.success) {
+          setSelectedSong({
+            id: songData.song.id,
+            title: songData.song.title,
+            songStructure: songData.song.songStructure,
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching song:', err);
+      }
     }
 
     setLoading(true);
@@ -135,10 +160,22 @@ export default function MelodyAgent() {
                 setProgress(update);
                 setProgressHistory((prev) => [...prev, update]);
               } else if (data.type === 'complete') {
+                // Use songStructure from API response, fallback to selectedSong, or fetch it
+                let songStructure = data.songStructure || selectedSong?.songStructure || null;
+                
+                // If still no songStructure, fetch it from the selected song
+                if (!songStructure && selectedSongId) {
+                  const selectedSongData = songs.find(s => s.id === selectedSongId);
+                  if (selectedSongData) {
+                    songStructure = selectedSongData.songStructure;
+                  }
+                }
+                
                 setResult({
                   melodyStructure: data.melodyStructure,
                   evaluation: data.evaluation,
                   iterationCount: data.iterationCount,
+                  songStructure: songStructure,
                 });
                 setProgress({ phase: 'complete', message: 'Complete!' });
                 setLoading(false);
@@ -213,7 +250,16 @@ export default function MelodyAgent() {
           melodyStructure: data.melody.midiStructure,
           evaluation: null, // Evaluation not stored separately
           iterationCount: data.melody.iterationCount,
+          songStructure: data.melody.song?.songStructure || null,
         });
+        // Also set selected song for reference
+        if (data.melody.song) {
+          setSelectedSong({
+            id: data.melody.song.id,
+            title: data.melody.song.title,
+            songStructure: data.melody.song.songStructure,
+          });
+        }
         setTimeout(() => {
           document.querySelector('.results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
@@ -257,16 +303,27 @@ export default function MelodyAgent() {
 
         <div className="form-group">
           <label htmlFor="tempo">Tempo (BPM):</label>
-          <input
+          <select
             id="tempo"
-            type="number"
-            min="40"
-            max="200"
             value={tempo}
-            onChange={(e) => setTempo(parseInt(e.target.value) || 120)}
+            onChange={(e) => setTempo(parseInt(e.target.value))}
             disabled={loading}
-          />
-          <p className="form-hint">Beats per minute (40-200)</p>
+          >
+            <option value="60">60 BPM (Very Slow)</option>
+            <option value="70">70 BPM (Slow)</option>
+            <option value="80">80 BPM (Slow-Medium)</option>
+            <option value="90">90 BPM (Medium)</option>
+            <option value="100">100 BPM (Medium)</option>
+            <option value="110">110 BPM (Medium-Fast)</option>
+            <option value="120">120 BPM (Fast - Default)</option>
+            <option value="130">130 BPM (Fast)</option>
+            <option value="140">140 BPM (Very Fast)</option>
+            <option value="150">150 BPM (Very Fast)</option>
+            <option value="160">160 BPM (Very Fast)</option>
+            <option value="170">170 BPM (Extremely Fast)</option>
+            <option value="180">180 BPM (Extremely Fast)</option>
+          </select>
+          <p className="form-hint">Beats per minute</p>
         </div>
 
         <div className="form-group">
@@ -503,7 +560,27 @@ export default function MelodyAgent() {
 
           <section className="result-section">
             <h2>Audio Playback</h2>
-            <MelodyPlayer melody={result.melodyStructure} />
+            <MelodyPlayer 
+              melody={result.melodyStructure} 
+              onTimeUpdate={(beat, time) => setCurrentBeat(beat)}
+            />
+            {result.songStructure ? (
+              <div style={{ marginTop: '2rem' }}>
+                <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem' }}>Lyrics</h3>
+                <LyricsDisplay 
+                  songStructure={result.songStructure}
+                  currentBeat={currentBeat}
+                  totalBeats={result.melodyStructure.totalBeats}
+                  melodyStructure={result.melodyStructure}
+                />
+              </div>
+            ) : (
+              <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-tertiary)', border: '1px solid var(--border-secondary)' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  Lyrics not available. Please select a song and generate a melody to see synchronized lyrics.
+                </p>
+              </div>
+            )}
           </section>
         </div>
       )}

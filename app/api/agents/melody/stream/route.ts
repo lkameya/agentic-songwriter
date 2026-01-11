@@ -119,13 +119,14 @@ export async function POST(req: NextRequest) {
         const evaluation = stateStore.get('evaluation') as MelodyEvaluation | undefined;
         const iterationCount = (stateStore.get('iterationCount') as number) || 0;
 
-        // Send final result
+        // Send final result (include song structure for lyrics display)
         sendEvent({
           type: 'complete',
           success: true,
           melodyStructure: melodyStructure || null,
           evaluation: evaluation || null,
           iterationCount,
+          songStructure: songStructure, // Include song structure for lyrics display
           trace: result.trace,
         });
 
