@@ -44,6 +44,12 @@ body {
   letter-spacing: -0.01em;
 }
 
+@media (max-width: 768px) {
+  body {
+    padding: 1.5rem 1rem;
+  }
+}
+
 body::before {
   content: '';
   position: fixed;
@@ -74,6 +80,12 @@ body::before {
   padding: 4rem 3rem;
   position: relative;
   z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 2rem 1.5rem;
+  }
 }
 
 h1 {
@@ -153,6 +165,14 @@ h1 {
   resize: vertical;
   min-height: 160px;
   line-height: 1.8;
+}
+
+@media (max-width: 768px) {
+  .form-group textarea {
+    min-height: 120px;
+    font-size: 16px; /* Prevents zoom on iOS */
+    padding: 1rem;
+  }
 }
 
 .form-group select {
@@ -260,6 +280,63 @@ h1 {
   opacity: 0.3;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Disable button animations on mobile/touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .submit-button::before {
+    display: none;
+  }
+  
+  .submit-button:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: var(--border-primary);
+  }
+  
+  .submit-button:active:not(:disabled) {
+    transform: none;
+    opacity: 0.8;
+  }
+  
+  .approve-button::before,
+  .regenerate-button::before,
+  .regenerate-with-feedback-button::before,
+  .reject-button::before {
+    display: none;
+  }
+  
+  .approve-button:hover:not(:disabled),
+  .regenerate-button:hover:not(:disabled),
+  .regenerate-with-feedback-button:hover:not(:disabled),
+  .reject-button:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: var(--border-primary);
+    background: var(--bg-primary);
+  }
+  
+  .approve-button:active:not(:disabled),
+  .regenerate-button:active:not(:disabled),
+  .regenerate-with-feedback-button:active:not(:disabled),
+  .reject-button:active:not(:disabled) {
+    transform: none;
+    opacity: 0.8;
+  }
+  
+  .history-toggle:hover {
+    border-color: var(--border-primary);
+    background: var(--bg-primary);
+  }
+  
+  .history-item:hover {
+    border-color: var(--border-secondary);
+    background: var(--bg-secondary);
+  }
+  
+  .history-action-button:hover {
+    border-color: var(--border-secondary);
+    color: var(--text-secondary);
+    background: transparent;
+  }
 }
 
 .error-box {
@@ -990,34 +1067,39 @@ h1 {
   letter-spacing: 0.01em;
 }
 
-/* Responsive design */
+/* Responsive design - Mobile */
 @media (max-width: 768px) {
-  body {
-    padding: 2rem 1rem;
-  }
-
-  .container {
-    padding: 3rem 2rem;
-  }
-
   h1 {
-    font-size: 3rem;
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
   }
 
   .subtitle {
     font-size: 0.6875rem;
+    margin-bottom: 2rem;
+  }
+
+  .form-group {
+    margin-bottom: 2rem;
+  }
+
+  .form-group input,
+  .form-group select {
+    padding: 1rem;
+    font-size: 16px; /* Prevents zoom on iOS */
   }
 
   .song-title {
-    font-size: 2.5rem;
+    font-size: 2rem;
   }
 
   .score-value {
-    font-size: 3rem;
+    font-size: 2.5rem;
   }
 
   .approval-buttons {
     flex-direction: column;
+    gap: 0.75rem;
   }
 
   .approve-button,
@@ -1025,12 +1107,13 @@ h1 {
   .regenerate-with-feedback-button,
   .reject-button {
     width: 100%;
+    padding: 1rem 1.5rem;
   }
 
   .step-icon {
-    width: 50px;
-    height: 50px;
-    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
   }
 
   .history-section {
@@ -1039,10 +1122,92 @@ h1 {
 
   .history-toggle {
     width: 100%;
+    padding: 0.875rem 1.5rem;
+    font-size: 0.6875rem;
   }
 
   .history-item {
-    padding: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .history-item-title {
+    font-size: 1.25rem;
+  }
+
+  .result-section {
+    padding: 2rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .trace-toggle {
+    padding: 1rem 1.5rem;
+    font-size: 0.6875rem;
+  }
+}
+
+/* Disable button animations on touch devices (mobile) */
+@media (hover: none) and (pointer: coarse) {
+  .submit-button::before {
+    display: none;
+  }
+  
+  .submit-button:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: var(--border-primary);
+  }
+  
+  .submit-button:active:not(:disabled) {
+    transform: none;
+    opacity: 0.8;
+  }
+  
+  .approve-button::before,
+  .regenerate-button::before,
+  .regenerate-with-feedback-button::before,
+  .reject-button::before {
+    display: none;
+  }
+  
+  .approve-button:hover:not(:disabled),
+  .regenerate-button:hover:not(:disabled),
+  .regenerate-with-feedback-button:hover:not(:disabled),
+  .reject-button:hover:not(:disabled) {
+    color: var(--text-primary);
+    border-color: var(--border-primary);
+    background: var(--bg-primary);
+  }
+  
+  .approve-button:active:not(:disabled),
+  .regenerate-button:active:not(:disabled),
+  .regenerate-with-feedback-button:active:not(:disabled),
+  .reject-button:active:not(:disabled) {
+    transform: none;
+    opacity: 0.8;
+  }
+  
+  .trace-toggle::before {
+    display: none;
+  }
+  
+  .trace-toggle:hover {
+    color: var(--text-primary);
+    border-color: var(--border-primary);
+  }
+  
+  .history-toggle:hover {
+    border-color: var(--border-primary);
+    background: var(--bg-primary);
+  }
+  
+  .history-item:hover {
+    border-color: var(--border-secondary);
+    background: var(--bg-secondary);
+  }
+  
+  .history-action-button:hover {
+    border-color: var(--border-secondary);
+    color: var(--text-secondary);
+    background: transparent;
   }
 }
 
