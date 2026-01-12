@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db/prisma';
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
+    const searchParams = req.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '10', 10);
     const offset = parseInt(searchParams.get('offset') || '0', 10);
     const sortBy = searchParams.get('sortBy') || 'createdAt';
