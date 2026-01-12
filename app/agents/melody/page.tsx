@@ -51,9 +51,6 @@ export default function MelodyAgent() {
   } | null>(null);
   const [progress, setProgress] = useState<ProgressUpdate | null>(null);
   const [progressHistory, setProgressHistory] = useState<ProgressUpdate[]>([]);
-  const [melodyHistory, setMelodyHistory] = useState<SavedMelody[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const [currentBeat, setCurrentBeat] = useState(0);
 
   // Fetch songs for dropdown
@@ -180,8 +177,6 @@ export default function MelodyAgent() {
                 setProgress({ phase: 'complete', message: 'Complete!' });
                 setLoading(false);
                 return;
-              } else if (data.type === 'saved') {
-                fetchMelodyHistory();
               } else if (data.type === 'error') {
                 throw new Error(data.error || 'Unknown error');
               }
@@ -195,78 +190,6 @@ export default function MelodyAgent() {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
       setLoading(false);
       setProgress({ phase: 'error', message: 'Error occurred' });
-    }
-  };
-
-  const fetchMelodyHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const response = await fetch(`/api/melodies?limit=50&sortBy=createdAt&order=desc${selectedSongId ? `&songId=${selectedSongId}` : ''}`);
-      const data = await response.json();
-      if (data.success) {
-        setMelodyHistory(data.melodies);
-      }
-    } catch (err) {
-      console.error('Error fetching melody history:', err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedSongId) {
-      fetchMelodyHistory();
-    }
-  }, [selectedSongId]);
-
-  const handleDeleteMelody = async (melodyId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this melody?')) return;
-    try {
-      const response = await fetch(`/api/melodies/${melodyId}`, { method: 'DELETE' });
-      const data = await response.json();
-      if (data.success) {
-        setMelodyHistory((prev) => prev.filter((m) => m.id !== melodyId));
-        if (result && result.melodyStructure) {
-          // Clear result if deleted melody was the current one
-          const currentMelody = melodyHistory.find(m => m.id === melodyId);
-          if (currentMelody) {
-            setResult(null);
-          }
-        }
-      }
-    } catch (err) {
-      console.error('Error deleting melody:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete melody');
-    }
-  };
-
-  const handleViewMelody = async (melodyId: string) => {
-    try {
-      const response = await fetch(`/api/melodies/${melodyId}`);
-      const data = await response.json();
-      if (data.success) {
-        setResult({
-          melodyStructure: data.melody.midiStructure,
-          evaluation: null, // Evaluation not stored separately
-          iterationCount: data.melody.iterationCount,
-          songStructure: data.melody.song?.songStructure || null,
-        });
-        // Also set selected song for reference
-        if (data.melody.song) {
-          setSelectedSong({
-            id: data.melody.song.id,
-            title: data.melody.song.title,
-            songStructure: data.melody.song.songStructure,
-          });
-        }
-        setTimeout(() => {
-          document.querySelector('.results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
-    } catch (err) {
-      console.error('Error fetching melody:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load melody');
     }
   };
 
@@ -358,64 +281,6 @@ export default function MelodyAgent() {
           <span>{loading ? 'Generating...' : 'Generate Melody'}</span>
         </button>
       </form>
-
-      <div className="history-section">
-        <button
-          onClick={() => {
-            setShowHistory(!showHistory);
-            if (!showHistory && selectedSongId) {
-              fetchMelodyHistory();
-            }
-          }}
-          className="history-toggle"
-          disabled={!selectedSongId}
-        >
-          <span>{showHistory ? 'Hide' : 'Show'} History ({melodyHistory.length})</span>
-        </button>
-
-        {showHistory && selectedSongId && (
-          <div className="history-list">
-            {loadingHistory ? (
-              <p className="history-empty">Loading history...</p>
-            ) : melodyHistory.length === 0 ? (
-              <p className="history-empty">No melodies for this song yet. Generate your first melody!</p>
-            ) : (
-              <ul className="history-items">
-                {melodyHistory.map((melody) => (
-                  <li
-                    key={melody.id}
-                    className="history-item"
-                    onClick={() => handleViewMelody(melody.id)}
-                  >
-                    <div className="history-item-header">
-                      <h4 className="history-item-title">
-                        Melody ({melody.tempo} BPM, {melody.key}, {melody.timeSignature})
-                      </h4>
-                      <div className="history-item-actions">
-                        <button
-                          onClick={(e) => handleDeleteMelody(melody.id, e)}
-                          className="history-action-button history-action-delete"
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                    <div className="history-item-meta">
-                      {melody.qualityScore !== null && (
-                        <span className="history-item-score">• {melody.qualityScore.toFixed(1)}/10</span>
-                      )}
-                      <span className="history-item-date">
-                        • {new Date(melody.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-      </div>
 
       {error && (
         <div className="error-box">

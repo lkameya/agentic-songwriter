@@ -22,6 +22,14 @@ export default function Dashboard() {
       href: '/agents/melody',
       color: 'var(--text-primary)',
     },
+    {
+      id: 'songs',
+      name: 'Songs',
+      description: 'Browse and manage your saved songs',
+      icon: '📝',
+      href: '/songs',
+      color: 'var(--text-primary)',
+    },
   ];
 
   return (

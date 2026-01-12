@@ -4,17 +4,44 @@ import { z } from 'zod';
 import { SongStructure } from '@/lib/agent/schemas/song-structure';
 import { CreativeBrief } from '@/lib/agent/schemas/creative-brief';
 import { LyricsEvaluation } from '@/lib/agent/schemas/evaluation';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth/config';
 
-// GET: Retrieve all songs (with optional pagination)
+// Force dynamic rendering since we use search params
+export const dynamic = 'force-dynamic';
+
+// GET: Retrieve user's songs (with optional pagination)
 export async function GET(req: NextRequest) {
   try {
+    // Get authenticated user
+    const session = await getServerSession(authOptions).catch(() => null);
+    const userId = session?.user?.id || null;
+
+    // If not authenticated, return empty list (guests don't have songs)
+    if (!userId) {
+      return NextResponse.json({
+        success: true,
+        songs: [],
+        pagination: {
+          total: 0,
+          limit: 50,
+          offset: 0,
+          hasMore: false,
+        },
+      });
+    }
+
     const searchParams = req.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const order = searchParams.get('order') === 'asc' ? 'asc' : 'desc';
 
+    // Filter songs by userId
     const songs = await prisma.song.findMany({
+      where: {
+        userId,
+      },
       take: limit,
       skip: offset,
       orderBy: {
@@ -22,7 +49,11 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const total = await prisma.song.count();
+    const total = await prisma.song.count({
+      where: {
+        userId,
+      },
+    });
 
     // Parse JSON strings back to objects for the response
     const songsWithParsedData = songs.map((song) => ({

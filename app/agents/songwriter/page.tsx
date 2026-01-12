@@ -60,10 +60,6 @@ export default function SongwriterAgent() {
   const [approvalRequest, setApprovalRequest] = useState<ApprovalRequest | null>(null);
   const [feedback, setFeedback] = useState('');
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
-  const [songHistory, setSongHistory] = useState<SavedSong[]>([]);
-  const [selectedSong, setSelectedSong] = useState<SavedSong | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,68 +206,6 @@ export default function SongwriterAgent() {
       setError(err instanceof Error ? err.message : 'Failed to send approval');
     } finally {
       setIsSubmittingApproval(false);
-    }
-  };
-
-  const fetchSongHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const response = await fetch('/api/songs?limit=50&sortBy=createdAt&order=desc');
-      const data = await response.json();
-      if (data.success) {
-        setSongHistory(data.songs);
-      }
-    } catch (err) {
-      console.error('Error fetching song history:', err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSongHistory();
-  }, []);
-
-  const handleViewSong = async (songId: string) => {
-    try {
-      const response = await fetch(`/api/songs/${songId}`);
-      const data = await response.json();
-      if (data.success) {
-        setSelectedSong(data.song);
-        setResult({
-          success: true,
-          creativeBrief: data.song.creativeBrief,
-          songStructure: data.song.songStructure,
-          evaluation: data.song.evaluation,
-          iterationCount: data.song.iterationCount,
-          trace: data.song.trace || [],
-        });
-        setTimeout(() => {
-          document.querySelector('.results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 100);
-      }
-    } catch (err) {
-      console.error('Error fetching song:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load song');
-    }
-  };
-
-  const handleDeleteSong = async (songId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm('Are you sure you want to delete this song?')) return;
-    try {
-      const response = await fetch(`/api/songs/${songId}`, { method: 'DELETE' });
-      const data = await response.json();
-      if (data.success) {
-        setSongHistory((prev) => prev.filter((song) => song.id !== songId));
-        if (selectedSong?.id === songId) {
-          setSelectedSong(null);
-          setResult(null);
-        }
-      }
-    } catch (err) {
-      console.error('Error deleting song:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete song');
     }
   };
 

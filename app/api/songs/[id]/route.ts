@@ -3,13 +3,19 @@ import { prisma } from '@/lib/db/prisma';
 import { SongStructure } from '@/lib/agent/schemas/song-structure';
 import { CreativeBrief } from '@/lib/agent/schemas/creative-brief';
 import { LyricsEvaluation } from '@/lib/agent/schemas/evaluation';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth/config';
 
-// GET: Retrieve a specific song by ID
+// GET: Retrieve a specific song by ID (only if owned by user)
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Get authenticated user
+    const session = await getServerSession(authOptions).catch(() => null);
+    const userId = session?.user?.id || null;
+
     const song = await prisma.song.findUnique({
       where: {
         id: params.id,
@@ -17,6 +23,17 @@ export async function GET(
     });
 
     if (!song) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Song not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    // Check ownership - return 404 if not owned by user (prevent enumeration)
+    if (song.userId !== userId) {
       return NextResponse.json(
         {
           success: false,
@@ -60,13 +77,55 @@ export async function GET(
   }
 }
 
-// DELETE: Delete a song by ID
+// DELETE: Delete a song by ID (only if owned by user)
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const song = await prisma.song.delete({
+    // Get authenticated user
+    const session = await getServerSession(authOptions).catch(() => null);
+    const userId = session?.user?.id || null;
+
+    if (!userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Unauthorized',
+        },
+        { status: 401 }
+      );
+    }
+
+    // Check ownership first
+    const song = await prisma.song.findUnique({
+      where: {
+        id: params.id,
+      },
+    });
+
+    if (!song) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Song not found',
+        },
+        { status: 404 }
+      );
+    }
+
+    if (song.userId !== userId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Forbidden',
+        },
+        { status: 403 }
+      );
+    }
+
+    // Delete the song
+    await prisma.song.delete({
       where: {
         id: params.id,
       },
