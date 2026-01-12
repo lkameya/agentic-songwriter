@@ -2,8 +2,9 @@
 
 import { signIn } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense } from 'react';
 
-export default function SignIn() {
+function SignInContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
@@ -84,5 +85,22 @@ export default function SignIn() {
         </p>
       </div>
     </main>
+  );
+}
+
+export default function SignIn() {
+  return (
+    <Suspense fallback={
+      <main className="container">
+        <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'center' }}>
+          <h1>Sign in</h1>
+          <p className="subtitle" style={{ marginBottom: '3rem' }}>
+            Loading...
+          </p>
+        </div>
+      </main>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
