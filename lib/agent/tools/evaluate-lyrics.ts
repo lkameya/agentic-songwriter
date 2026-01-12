@@ -21,7 +21,6 @@ export class EvaluateLyricsTool extends Tool {
   outputSchema = LyricsEvaluationSchema;
 
   private openai?: OpenAI;
-
   private useMock: boolean;
 
   constructor() {

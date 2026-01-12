@@ -20,7 +20,6 @@ export class GenerateSongStructureTool extends Tool {
   outputSchema = SongStructureSchema;
 
   private openai?: OpenAI;
-
   private useMock: boolean;
 
   constructor() {
@@ -87,7 +86,7 @@ ${outputLanguage === 'pt-BR' ? 'IMPORTANT: Write all lyrics, title, and content 
           role: 'user',
           content: `Create a highly creative, original song structure from this creative brief:
 
-Lyrics (base): ${brief.lyrics}
+Storyline: ${brief.lyrics}
 Emotion: ${brief.emotion}
 Mood: ${brief.mood}
 Themes: ${brief.themes.join(', ')}
@@ -97,7 +96,7 @@ ${brief.style ? `Style: ${brief.style}` : ''}
 ${outputLanguage === 'pt-BR' ? '\nLanguage: Portuguese (Brazil) - Write all content in Brazilian Portuguese.' : '\nLanguage: English - Write all content in English.'}
 
 CREATIVITY REQUIREMENTS:
-- Use the base lyrics as inspiration, but transform them into something fresh and original
+- Use the storyline as inspiration, but transform it into something fresh and original
 - Avoid generic phrases like "forever and always", "tears in my eyes", "heart of gold"
 - Create vivid, specific imagery: instead of "I'm sad", describe what sadness looks/feels like in concrete terms
 - Use unexpected metaphors and comparisons

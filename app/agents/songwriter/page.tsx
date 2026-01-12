@@ -332,12 +332,12 @@ export default function SongwriterAgent() {
 
       <form onSubmit={handleSubmit} className="form">
         <div className="form-group">
-          <label htmlFor="lyrics">Lyrics (base):</label>
+          <label htmlFor="lyrics">Storyline:</label>
           <textarea
             id="lyrics"
             value={lyrics}
             onChange={(e) => setLyrics(e.target.value)}
-            placeholder="Enter your base lyrics here..."
+            placeholder="Enter your storyline or instructions for the song..."
             rows={6}
             required
           />

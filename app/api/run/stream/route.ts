@@ -16,7 +16,7 @@ import { prisma } from '@/lib/db/prisma';
 
 // Input validation schema
 const RunRequestSchema = z.object({
-  lyrics: z.string().min(1, 'Lyrics are required'),
+  lyrics: z.string().min(1, 'Storyline is required'),
   emotion: z.string().min(1, 'Emotion is required'),
   genre: z.string().optional(),
   language: z.enum(['en', 'pt-BR']).optional().default('en'),

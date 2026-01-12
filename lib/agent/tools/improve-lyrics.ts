@@ -23,7 +23,6 @@ export class ImproveLyricsTool extends Tool {
   outputSchema = SongStructureSchema;
 
   private openai?: OpenAI;
-
   private useMock: boolean;
 
   constructor() {

@@ -11,6 +11,10 @@ import { MelodyStructure } from '@/lib/agent/schemas/melody';
 import { MelodyEvaluation } from '@/lib/agent/schemas/melody-evaluation';
 import { SongStructure } from '@/lib/agent/schemas/song-structure';
 import { prisma } from '@/lib/db/prisma';
+import { quotaService, QuotaContext } from '@/lib/services/quota-service';
+import { QuotaExceededError } from '@/lib/errors/quota-errors';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth/config';
 
 // Input validation schema
 const MelodyRequestSchema = z.object({
@@ -35,6 +39,36 @@ export async function POST(req: NextRequest) {
         // Parse and validate request body
         const body = await req.json();
         const validatedBody = MelodyRequestSchema.parse(body);
+
+        // Get user context for quota enforcement
+        // Note: In App Router, getServerSession works without explicit headers
+        // but we need to handle the case where session might be null
+        const session = await getServerSession(authOptions).catch(() => null);
+        let quotaContext: QuotaContext;
+        
+        if (session?.user?.id) {
+          // Authenticated user
+          quotaContext = { userId: session.user.id as string };
+        } else {
+          // Guest user - get or create session ID from cookie
+          const guestSessionId = req.cookies.get('guest_session_id')?.value || `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+          quotaContext = { sessionId: guestSessionId };
+        }
+
+        // Check quota before starting generation
+        try {
+          await quotaService.checkQuota(quotaContext);
+        } catch (error) {
+          if (error instanceof QuotaExceededError) {
+            sendEvent({
+              type: 'error',
+              error: `Quota exceeded: ${error.message}`,
+            });
+            controller.close();
+            return;
+          }
+          throw error;
+        }
 
         // Load song from database
         const song = await prisma.song.findUnique({
@@ -112,6 +146,14 @@ export async function POST(req: NextRequest) {
           });
           controller.close();
           return;
+        }
+
+        // Increment quota after successful generation
+        try {
+          await quotaService.incrementQuota(quotaContext);
+        } catch (error) {
+          console.error('[Quota] Error incrementing quota:', error);
+          // Don't fail the request if quota increment fails, but log it
         }
 
         // Extract results from final state

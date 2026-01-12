@@ -20,57 +20,62 @@ interface LineInfo {
 }
 
 export function LyricsDisplay({ songStructure, currentBeat, totalBeats, melodyStructure }: LyricsDisplayProps) {
-  // Build a flat list of all lines with their timing
-  const sections = songStructure.sections.sort((a, b) => a.order - b.order);
+  // Sort sections by order to ensure correct sequence
+  const sections = [...songStructure.sections].sort((a, b) => a.order - b.order);
   const lines: LineInfo[] = [];
   
   // First pass: collect all non-empty lines to calculate total
-  let totalLines = 0;
+  let totalNonEmptyLines = 0;
   sections.forEach((section) => {
-    const sectionLines = section.content.split('\n').filter(line => line.trim() || line === '');
-    totalLines += sectionLines.filter(line => line.trim()).length || 1;
+    const sectionLines = section.content.split('\n');
+    totalNonEmptyLines += sectionLines.filter(line => line.trim()).length;
   });
   
-  // Calculate beats per line (distribute total beats across all lines)
-  const beatsPerLine = totalLines > 0 ? totalBeats / totalLines : 4;
+  // Calculate beats per line (distribute total beats across all non-empty lines)
+  const beatsPerLine = totalNonEmptyLines > 0 ? totalBeats / totalNonEmptyLines : 4;
   const beatsPerEmptyLine = 0.5; // Minimal time for empty lines
   
   let currentBeatPosition = 0;
+  let globalLineIndex = 0;
   
+  // Second pass: create line entries for each section, preserving all lines (including empty ones)
   sections.forEach((section, sectionIdx) => {
-    const sectionLines = section.content.split('\n').filter(line => line.trim() || line === '');
+    // Split by newlines - this preserves the exact line structure
+    const sectionLines = section.content.split('\n');
     
-    sectionLines.forEach((line, lineIdx) => {
+    sectionLines.forEach((line, lineIdxInSection) => {
       const isEmpty = !line.trim();
-      // If no lines in song, use default
-      const lineBeats = isEmpty ? beatsPerEmptyLine : (totalLines > 0 ? beatsPerLine : 4);
+      const lineBeats = isEmpty ? beatsPerEmptyLine : beatsPerLine;
       
       lines.push({
         sectionIndex: sectionIdx,
-        lineIndex: lineIdx,
-        text: line || '\u00A0',
+        lineIndex: lineIdxInSection, // Line index within this section
+        text: line.trim() || '\u00A0', // Use non-breaking space for empty lines
         startBeat: currentBeatPosition,
         endBeat: currentBeatPosition + lineBeats,
         sectionType: section.type,
       });
       
       currentBeatPosition += lineBeats;
+      if (!isEmpty) {
+        globalLineIndex++;
+      }
     });
   });
 
   // Find which line is currently active
-  const activeLineIndex = lines.findIndex(
+  const activeLine = lines.find(
     line => currentBeat >= line.startBeat && currentBeat < line.endBeat
   );
-  const activeLine = activeLineIndex >= 0 ? lines[activeLineIndex] : null;
 
-  // Group lines back into sections for display - preserve original section order
+  // Group lines back into sections for display - each section gets its own lines
   const sectionsWithLines = sections
     .map((section, sectionIdx) => {
+      // Filter lines that belong to this specific section
       const sectionLines = lines.filter(line => line.sectionIndex === sectionIdx);
       return {
         section,
-        sectionIndex: sectionIdx, // Preserve original section index
+        sectionIndex: sectionIdx,
         lines: sectionLines,
         startBeat: sectionLines[0]?.startBeat || 0,
         endBeat: sectionLines[sectionLines.length - 1]?.endBeat || 0,
@@ -83,7 +88,10 @@ export function LyricsDisplay({ songStructure, currentBeat, totalBeats, melodySt
       <h3 className="song-title-display">{songStructure.title}</h3>
       <div className="lyrics-sections">
         {sectionsWithLines.map((sectionData) => {
-          const isInSection = currentBeat >= sectionData.startBeat && currentBeat < sectionData.endBeat;
+          const isInSection = activeLine && 
+            activeLine.sectionIndex === sectionData.sectionIndex &&
+            currentBeat >= sectionData.startBeat && 
+            currentBeat < sectionData.endBeat;
           
           return (
             <div
@@ -95,7 +103,7 @@ export function LyricsDisplay({ songStructure, currentBeat, totalBeats, melodySt
               </div>
               <div className="lyrics-section-content">
                 {sectionData.lines.map((lineInfo) => {
-                  // Check if this is the active line using the stored sectionIndex and lineIndex
+                  // Check if this is the active line using sectionIndex and lineIndex
                   const isActiveLine = activeLine?.sectionIndex === sectionData.sectionIndex && 
                                      activeLine?.lineIndex === lineInfo.lineIndex;
                   
